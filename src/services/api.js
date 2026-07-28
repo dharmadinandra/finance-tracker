@@ -14,11 +14,11 @@ export async function getCategories()
   return data;
 }
 
-export async function saveTransaction(payload) 
-{
-  const res = await fetch(APPS_SCRIPT_URL, {
+export async function saveTransaction(payload) {
+  await fetch(APPS_SCRIPT_URL, {
     method: "POST",
+    mode: "no-cors",
     body: JSON.stringify(payload),
   });
-  return res.json();
+  return { success: true };
 }

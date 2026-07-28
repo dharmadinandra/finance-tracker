@@ -166,10 +166,7 @@ const fetchData = useCallback(async () => {
       return;
     }
     try {
-      await fetch(APPS_SCRIPT_URL, {
-        method: "POST",
-        body: JSON.stringify(payload),
-      });
+      await saveTransaction(payload);
       showToast("Berhasil disimpan ke Google Sheets ✓");
       setForm(f => ({ ...f, remarks: "", total: "" }));
       fetchData();
