@@ -5,6 +5,100 @@ import {
 } from "recharts";
 import { getTransactions, getCategories, saveTransaction } from "./services/api";
 
+// ── PIN LOCK ───────────────────────────────────────────────────────────────
+const CORRECT_PIN = "1402"; // ← GANTI dengan PIN kamu
+
+function PinLock({ onUnlock }) {
+  const [pin, setPin]           = useState("");
+  const [shake, setShake]       = useState(false);
+  const [attempts, setAttempts] = useState(0);
+  const [locked, setLocked]     = useState(false);
+  const [countdown, setCountdown] = useState(0);
+
+  useEffect(() => {
+    if (locked && countdown > 0) {
+      const t = setTimeout(() => setCountdown(c => c - 1), 1000);
+      return () => clearTimeout(t);
+    }
+    if (locked && countdown === 0) setLocked(false);
+  }, [locked, countdown]);
+
+  const handleKey = (k) => {
+    if (locked) return;
+    if (k === "del") { setPin(p => p.slice(0, -1)); return; }
+    const next = pin + k;
+    setPin(next);
+    if (next.length === 4) {
+      if (next === CORRECT_PIN) {
+        onUnlock();
+      } else {
+        const newAttempts = attempts + 1;
+        setAttempts(newAttempts);
+        setShake(true);
+        setTimeout(() => { setShake(false); setPin(""); }, 600);
+        if (newAttempts >= 3) {
+          setLocked(true);
+          setCountdown(30);
+          setAttempts(0);
+        }
+      }
+    }
+  };
+
+  const ps = {
+    wrap:  { position:"fixed", inset:0, background:"#0f172a", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", zIndex:9999 },
+    logo:  { fontSize:48, marginBottom:8 },
+    title: { fontSize:20, fontWeight:700, color:"#f8fafc", marginBottom:4 },
+    sub:   { fontSize:13, color:"#64748b", marginBottom:36 },
+    dots:  { display:"flex", gap:16, marginBottom:36 },
+    dot:   (filled) => ({ width:14, height:14, borderRadius:"50%", background: filled?"#6366f1":"#1e293b", border:"2px solid", borderColor: filled?"#6366f1":"#334155", transition:"all 0.15s" }),
+    grid:  { display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:12, width:240 },
+    key:   (special) => ({ height:64, borderRadius:16, border:"none", background: special?"#0f172a":"#1e293b", color: special?"#64748b":"#f1f5f9", fontSize:22, fontWeight:700, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }),
+    err:   { fontSize:12, color:"#ef4444", marginTop:16, height:18 },
+    lock:  { fontSize:13, color:"#f59e0b", marginTop:16, textAlign:"center" },
+  };
+
+  const keys = ["1","2","3","4","5","6","7","8","9","","0","del"];
+
+  return (
+    <div style={ps.wrap}>
+      <div style={ps.logo}>🔒</div>
+      <div style={ps.title}>Catatan Keuangan</div>
+      <div style={ps.sub}>Masukkan PIN untuk melanjutkan</div>
+
+      <div style={{ ...ps.dots, animation: shake ? "shake 0.4s ease" : "none" }}>
+        {[0,1,2,3].map(i => <div key={i} style={ps.dot(i < pin.length)} />)}
+      </div>
+
+      <div style={ps.grid}>
+        {keys.map((k,i) => (
+          k === "" ? <div key={i} /> :
+          <button key={i} style={ps.key(k==="del")} onClick={()=>handleKey(k)} disabled={locked}>
+            {k === "del" ? "⌫" : k}
+          </button>
+        ))}
+      </div>
+
+      {locked
+        ? <div style={ps.lock}>⚠️ Terlalu banyak percobaan<br/>Coba lagi dalam {countdown} detik</div>
+        : attempts > 0
+          ? <div style={ps.err}>PIN salah · {3 - attempts} percobaan tersisa</div>
+          : <div style={ps.err} />
+      }
+
+      <style>{`
+        @keyframes shake {
+          0%,100%{transform:translateX(0)}
+          20%{transform:translateX(-8px)}
+          40%{transform:translateX(8px)}
+          60%{transform:translateX(-8px)}
+          80%{transform:translateX(8px)}
+        }
+      `}</style>
+    </div>
+  );
+}
+
 const TYPES = ["Pengeluaran", "Pemasukan"];
 const PIE_COLORS = ["#6366f1","#f59e0b","#ec4899","#10b981","#3b82f6","#8b5cf6","#ef4444","#6b7280","#f97316","#14b8a6","#a855f7","#06b6d4"];
 const MONTH_NAMES = ["","Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
@@ -43,6 +137,7 @@ const MOCK = [
 ];
 
 export default function App() {
+  const [unlocked, setUnlocked] = useState(false);
   const [tab, setTab]                   = useState("dashboard");
   const [transactions, setTransactions] = useState([]);
   const [categories, setCategories]     = useState([]);
@@ -221,6 +316,7 @@ export default function App() {
 
   return (
     <div style={s.app}>
+      {!unlocked && <PinLock onUnlock={() => setUnlocked(true)} />}
       {toast && <div style={s.toast(toast.ok)}>{toast.msg}</div>}
 
       {/* ── HEADER ── */}
