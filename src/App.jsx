@@ -249,8 +249,15 @@ export default function App() {
   // ── Bar chart: daily cash flow ────────────────────────────────────────────
   const byDay = {};
   filtered.forEach(t => {
-    const raw  = String(t.Date);
-    const d    = raw.length >= 10 ? raw.slice(5,10) : raw.slice(0,5);
+    const raw = String(t.Date);
+    let d;
+    if (raw.includes("T")) {
+      const dt = new Date(raw);
+      dt.setHours(dt.getHours() + 7);
+      d = dt.toISOString().slice(5, 10);
+    } else {
+      d = raw.slice(5, 10);
+    }
     if (!byDay[d]) byDay[d] = { date: d, Pengeluaran: 0, Pemasukan: 0 };
     if (t.Type === "Pengeluaran") byDay[d].Pengeluaran += Math.abs(parseTotal(t.Total));
     else byDay[d].Pemasukan += parseTotal(t.Total);
@@ -510,7 +517,18 @@ export default function App() {
             {loading && <div style={{textAlign:"center",color:"#64748b",padding:20}}>Memuat…</div>}
             {!loading && filtered.slice().reverse().slice(0,100).map((t,i) => {
               const amt = parseTotal(t.Total);
-              const dateStr = String(t.Date).length >= 10 ? String(t.Date).slice(0,10) : String(t.Date);
+              const dateStr = (() => 
+              {
+              const raw = String(t.Date);
+              // If it contains T (datetime), parse and add 7 hours for WIB
+              if (raw.includes("T")) {
+                const dt = new Date(raw);
+                dt.setHours(dt.getHours() + 7);
+                return dt.toISOString().slice(0, 10);
+              }
+              // Already a plain date string like "2026-07-29"
+              return raw.slice(0, 10);
+              })();
               return (
                 <div key={i} style={s.txItem}>
                   <div style={s.txLeft}>
