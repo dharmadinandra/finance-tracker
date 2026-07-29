@@ -123,7 +123,14 @@ function formatRpFull(val) {
 
 function parseTotal(raw) {
   if (typeof raw === "number") return raw;
-  return Number(String(raw).replace(/[^0-9\-]/g, "")) || 0;
+  if (!raw) return 0;
+  const str = String(raw)
+    .replace(/Rp/gi, "")
+    .replace(/\./g, "")   // remove thousand separators
+    .replace(/,/g, ".")   // normalize decimal
+    .replace(/\s/g, "")
+    .trim();
+  return Number(str) || 0;
 }
 
 const MOCK = [
@@ -172,6 +179,7 @@ export default function App() {
       const data = await getTransactions();
       if (!Array.isArray(data)) throw new Error("bukan array");
       setTransactions(data);
+      window.__transactions = data; 
     } catch {
       showToast("Gagal memuat data", false);
       setTransactions(MOCK);
@@ -232,10 +240,10 @@ export default function App() {
 
   // ── Summary ───────────────────────────────────────────────────────────────
   const totalIn  = filtered.filter(t => t.Type === "Pemasukan")
-    .reduce((s,t) => s + parseTotal(t.Total), 0);
-  const totalOut = filtered.filter(t => t.Type === "Pengeluaran")
-    .reduce((s,t) => s + Math.abs(parseTotal(t.Total)), 0);
-  const balance  = totalIn - totalOut;
+  .reduce((s,t) => s + parseTotal(t.Total), 0);
+  const totalOut = Math.abs(filtered.filter(t => t.Type === "Pengeluaran")
+  .reduce((s,t) => s + parseTotal(t.Total), 0));
+  const balance = filtered.reduce((s, t) => s + parseTotal(t.Total), 0);
 
   // ── Pie chart: spending by category ──────────────────────────────────────
   const allCats = [...new Set(transactions.map(t => t.Category))];
