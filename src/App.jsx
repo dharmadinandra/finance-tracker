@@ -280,7 +280,7 @@ export default function App() {
 
   // ── Styles ────────────────────────────────────────────────────────────────
   const s = {
-    app:        { fontFamily:"'Inter',system-ui,sans-serif", background:"#0f172a", minHeight:"100vh", color:"#f1f5f9", maxWidth:430, margin:"0 auto", position:"relative", paddingBottom:80 },
+    app:        { fontFamily:"'Inter',system-ui,sans-serif", background:"#0f172a", minHeight:"100vh", color:"#f1f5f9", width:"100%", maxWidth:"100%", margin:"0 auto", position:"relative", paddingBottom:80, boxSizing:"border-box" },
     header:     { background:"linear-gradient(135deg,#1e293b,#0f172a)", padding:"18px 16px 14px", borderBottom:"1px solid #1e293b" },
     headerRow:  { display:"flex", alignItems:"center", justifyContent:"space-between" },
     headerTitle:{ fontSize:20, fontWeight:700, color:"#f8fafc", margin:0 },
@@ -323,7 +323,7 @@ export default function App() {
     catDot:     (cat) => ({ width:7, height:7, borderRadius:"50%", background:COLORS[cat]||"#6366f1", display:"inline-block", marginRight:5 }),
 
     // Nav
-    nav:        { position:"fixed", bottom:0, left:"50%", transform:"translateX(-50%)", width:"100%", maxWidth:430, background:"#1e293b", borderTop:"1px solid #334155", display:"flex", zIndex:100 },
+    nav:        { position:"fixed", bottom:0, left:0, right:0, width:"100%", background:"#1e293b", borderTop:"1px solid #334155", display:"flex", zIndex:100 },
     navBtn:     (active) => ({ flex:1, padding:"12px 0 8px", background:"none", border:"none", color: active?"#6366f1":"#64748b", cursor:"pointer", fontSize:10, fontWeight: active?700:400, display:"flex", flexDirection:"column", alignItems:"center", gap:3 }),
 
     toast:      (ok) => ({ position:"fixed", top:20, left:"50%", transform:"translateX(-50%)", background: ok?"#10b981":"#ef4444", color:"#fff", padding:"10px 20px", borderRadius:12, fontWeight:700, fontSize:13, zIndex:999, whiteSpace:"nowrap", boxShadow:"0 4px 20px #0008" }),
