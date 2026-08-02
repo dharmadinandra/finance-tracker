@@ -1,34 +1,36 @@
 import { useState, useEffect, useCallback } from "react";
-import {
-  BarChart, Bar, PieChart, Pie, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
-} from "recharts";
-import { getTransactions, getCategories, saveTransaction } from "./services/api";
+import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { getTransactions, getCategories, saveTransaction, editTransaction, deleteTransaction } from "./services/api";
 
 // ── PIN LOCK ───────────────────────────────────────────────────────────────
 const CORRECT_PIN = "1402"; // ← GANTI dengan PIN kamu
 
-function PinLock({ onUnlock }) {
-  const [pin, setPin]           = useState("");
-  const [shake, setShake]       = useState(false);
-  const [attempts, setAttempts] = useState(0);
-  const [locked, setLocked]     = useState(false);
+function PinLock({ onUnlock }) 
+{
+  const [pin, setPin]             = useState("");
+  const [shake, setShake]         = useState(false);
+  const [attempts, setAttempts]   = useState(0);
+  const [locked, setLocked]       = useState(false);
   const [countdown, setCountdown] = useState(0);
 
-  useEffect(() => {
-    if (locked && countdown > 0) {
+  useEffect(() => 
+  {
+    if (locked && countdown > 0) 
+      {
       const t = setTimeout(() => setCountdown(c => c - 1), 1000);
       return () => clearTimeout(t);
-    }
+      }
     if (locked && countdown === 0) setLocked(false);
   }, [locked, countdown]);
 
-  const handleKey = (k) => {
+  const handleKey = (k) => 
+  {
     if (locked) return;
     if (k === "del") { setPin(p => p.slice(0, -1)); return; }
     const next = pin + k;
     setPin(next);
-    if (next.length === 4) {
+    if (next.length === 4) 
+    {
       if (next === CORRECT_PIN) {
         onUnlock();
       } else {
@@ -36,16 +38,18 @@ function PinLock({ onUnlock }) {
         setAttempts(newAttempts);
         setShake(true);
         setTimeout(() => { setShake(false); setPin(""); }, 600);
-        if (newAttempts >= 3) {
+        if (newAttempts >= 3) 
+          {
           setLocked(true);
           setCountdown(30);
           setAttempts(0);
-        }
+          }
       }
     }
   };
 
-  const ps = {
+  const ps = 
+  {
     wrap:  { position:"fixed", inset:0, background:"#0f172a", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", zIndex:9999 },
     logo:  { fontSize:48, marginBottom:8 },
     title: { fontSize:20, fontWeight:700, color:"#f8fafc", marginBottom:4 },
@@ -143,14 +147,19 @@ const MOCK = [
   { No:30, Date:"2025-07-07", Year:2025, Month:7, Category:"Pemasukan",    Type:"Pemasukan",   Remarks:"Gaji Bulanan",    Total:8000000 },
 ];
 
-export default function App() {
+export default function App() 
+{
   const [unlocked, setUnlocked] = useState(false);
-  const [tab, setTab]                   = useState("dashboard");
-  const [transactions, setTransactions] = useState([]);
-  const [categories, setCategories]     = useState([]);
-  const [loading, setLoading]           = useState(false);
-  const [submitting, setSubmitting]     = useState(false);
-  const [toast, setToast]               = useState(null);
+  const [tab, setTab]                     = useState("dashboard");
+  const [transactions, setTransactions]   = useState([]);
+  const [categories, setCategories]       = useState([]);
+  const [loading, setLoading]             = useState(false);
+  const [submitting, setSubmitting]       = useState(false);
+  const [toast, setToast]                 = useState(null);
+  const [swipedId,  setSwipedId]          = useState(null);
+  const [editModal, setEditModal]         = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [editForm, setEditForm]           = useState({});
 
   // ── Filters ──────────────────────────────────────────────────────────────
   const [filterYear,  setFilterYear]  = useState("all");
@@ -198,24 +207,89 @@ export default function App() {
     loadCats();
   }, [fetchData]);
 
-  const handleSubmit = async () => {
-    if (!form.remarks || !form.total) { showToast("Lengkapi semua field", false); return; }
-    setSubmitting(true);
-    const payload = {
-      ...form,
-      total: form.type === "Pengeluaran"
+  const handleEdit = (t) => 
+    {
+      const raw = String(t.Date);
+      let dateStr;
+      if (raw.includes("T")) {
+        const dt = new Date(raw);
+        dt.setHours(dt.getHours() + 7);
+        dateStr = dt.toISOString().slice(0, 10);
+      } else {
+        dateStr = raw.slice(0, 10);
+      }
+      setEditForm
+        ({
+        No:       t.No,
+        date:     dateStr,
+        category: t.Category,
+        type:     t.Type,
+        remarks:  t.Remarks,
+        total:    Math.abs(parseTotal(t.Total)),
+        });
+      setEditModal(true);
+      setSwipedId(null);
+    };
+  
+  const handleEditSubmit = async () => 
+    {
+      if (!editForm.remarks || !editForm.total) { showToast("Lengkapi semua field", false); return; }
+      setSubmitting(true);
+      const payload = 
+      { 
+          ...editForm,
+          total: editForm.type === "Pengeluaran"
+          ? -Math.abs(Number(editForm.total))
+          :  Math.abs(Number(editForm.total))
+      };
+      try 
+      {
+        await editTransaction(payload);
+        showToast("Transaksi berhasil diupdate ✓");
+        setEditModal(null);
+        fetchData();
+      } catch 
+        {
+        showToast("Gagal mengupdate", false);
+        } finally { setSubmitting(false); }
+    };
+
+  const handleDelete = async (No) => 
+    {
+    try {
+      await deleteTransaction(No);
+      showToast("Transaksi dihapus ✓");
+      setDeleteConfirm(null);
+      setSwipedId(null);
+      fetchData();
+      } catch 
+      {
+      showToast("Gagal menghapus", false);
+      }
+    };
+
+  const handleSubmit = async () => 
+    {
+      if (!form.remarks || !form.total) { showToast("Lengkapi semua field", false); return; }
+      setSubmitting(true);
+      const payload = 
+      {
+        ...form,
+        total: form.type === "Pengeluaran"
         ? -Math.abs(Number(form.total))
         : Math.abs(Number(form.total))
-    };
-    try {
+      };
+      try 
+      {
       await saveTransaction(payload);
       showToast("Berhasil disimpan ke Google Sheets ✓");
       setForm(f => ({ ...f, remarks: "", total: "" }));
       fetchData();
-    } catch {
-      showToast("Gagal menyimpan", false);
-    } finally { setSubmitting(false); }
-  };
+      } catch 
+        {
+        showToast("Gagal menyimpan", false);
+        } finally { setSubmitting(false); }
+    };
 
   // ── Derived: available years & months ────────────────────────────────────
   const years  = [...new Set(transactions.map(t => String(t.Year)))].sort().reverse();
@@ -507,10 +581,11 @@ export default function App() {
       )}
 
       {/* ── HISTORY TAB ── */}
-      {tab === "history" && (
-        <div style={{padding:"14px 14px 8px"}}>
-          {/* Category filter */}
-          <div style={{...s.filterBlock, marginBottom:10}}>
+      {tab === "history" && 
+        (
+          <div style={{padding:"14px 14px 8px"}}>
+            {/* Category filter */}
+            <div style={{...s.filterBlock, marginBottom:10}}>
             <div style={s.filterTitle}>🔍 Filter Kategori</div>
             <div style={s.filterRow}>
               <button style={s.filterChip(filterCat==="all")} onClick={()=>setFilterCat("all")}>Semua</button>
@@ -523,41 +598,201 @@ export default function App() {
           <div style={s.card}>
             <div style={{fontSize:11,color:"#64748b",marginBottom:10}}>{filtered.length} transaksi ditemukan</div>
             {loading && <div style={{textAlign:"center",color:"#64748b",padding:20}}>Memuat…</div>}
-            {!loading && filtered.slice().reverse().slice(0,100).map((t,i) => {
-              const amt = parseTotal(t.Total);
-              const dateStr = (() => 
-              {
-              const raw = String(t.Date);
-              // If it contains T (datetime), parse and add 7 hours for WIB
-              if (raw.includes("T")) {
-                const dt = new Date(raw);
-                dt.setHours(dt.getHours() + 7);
-                return dt.toISOString().slice(0, 10);
-              }
-              // Already a plain date string like "2026-07-29"
-              return raw.slice(0, 10);
-              })();
-              return (
-                <div key={i} style={s.txItem}>
-                  <div style={s.txLeft}>
-                    <div style={s.txName}>
-                      <span style={s.catDot(t.Category)} />
-                      {t.Remarks}
+            {!loading && filtered.slice().reverse().slice(0,100).map
+              ((t,i) => 
+                {
+                  const amt = parseTotal(t.Total);
+                  const raw = String(t.Date);
+                  let dateStr;
+                  if (raw.includes("T")) 
+                    {
+                    const dt = new Date(raw);
+                    dt.setHours(dt.getHours() + 7);
+                    dateStr = dt.toISOString().slice(0, 10);
+                    } else 
+                      {
+                        dateStr = raw.slice(0, 10);
+                      }
+                  const isOpen = swipedId === t.No;
+
+                  return (
+                    <div key={i} style={{ position:"relative", overflow:"hidden", borderBottom:"1px solid #334155" }}>
+                      {/* Action buttons revealed when swiped */}
+                      <div style={{ position:"absolute", right:0, top:0, bottom:0, display:"flex", alignItems:"stretch" }}>
+                        <button
+                          onClick={() => handleEdit(t)}
+                          style={{ background:"#6366f1", color:"#fff", border:"none", padding:"0 18px", fontSize:12, fontWeight:700, cursor:"pointer" }}
+                        >✏️ Edit
+                        </button>
+                        <button
+                          onClick={() => setDeleteConfirm(t)}
+                          style={{ background:"#ef4444", color:"#fff", border:"none", padding:"0 18px", fontSize:12, fontWeight:700, cursor:"pointer" }}
+                        >🗑️ Hapus
+                        </button>
+                      </div>
+
+                      {/* Transaction row - slides left on tap */}
+                      <div
+                        style=
+                        {{
+                          ...s.txItem,
+                          borderBottom:"none",
+                          background:"#0f172a",
+                          transform: isOpen ? "translateX(-140px)" : "translateX(0)",
+                          transition:"transform 0.25s ease",
+                          cursor:"pointer"
+                        }}
+                        onClick={() => setSwipedId(isOpen ? null : t.No)}
+                        >
+                        <div style={s.txLeft}>
+                          <div style={s.txName}>
+                            <span style={s.catDot(t.Category)} />
+                            {t.Remarks}
+                          </div>
+                          <div style={s.txMeta}>{t.Category} · {dateStr}</div>
+                        </div>
+                        <div style={s.txAmt(amt > 0)}>{amt > 0 ? "+" : ""}{formatRpFull(amt)}</div>
+                        <div style={{ fontSize:11, color:"#475569", marginLeft:8 }}>›</div>
+                      </div>
                     </div>
-                    <div style={s.txMeta}>{t.Category} · {dateStr}</div>
-                  </div>
-                  <div style={s.txAmt(amt>0)}>{amt>0?"+":""}{formatRpFull(amt)}</div>
-                </div>
-              );
-            })}
-            {!loading && filtered.length === 0 && (
+                  );
+                } 
+              )
+            } 
+            {!loading && filtered.length === 0 && 
+              (
               <div style={{textAlign:"center",color:"#64748b",padding:20}}>Tidak ada transaksi</div>
-            )}
+              )
+            }
           </div>
         </div>
-      )}
+        )
+      }
 
       {/* ── NAV ── */}
+
+      {/* ── DELETE CONFIRM ── */}
+        {deleteConfirm && 
+          (
+            <div style={{ position:"fixed", inset:0, background:"#000000aa", display:"flex", alignItems:"center", justifyContent:"center", zIndex:999, padding:24 }}>
+              <div style={{ background:"#1e293b", borderRadius:20, padding:24, width:"100%" }}>
+                <div style={{ fontSize:16, fontWeight:700, color:"#f1f5f9", marginBottom:8 }}>🗑️ Hapus Transaksi?</div>
+                <div style={{ fontSize:13, color:"#94a3b8", marginBottom:6 }}>
+                  {deleteConfirm.Remarks}
+                </div>
+                <div style={{ fontSize:13, color:"#ef4444", fontWeight:700, marginBottom:20 }}>
+                  {formatRpFull(parseTotal(deleteConfirm.Total))}
+                </div>
+                <div style={{ display:"flex", gap:10 }}>
+                  <button
+                    onClick={() => setDeleteConfirm(null)}
+                    style={{ flex:1, padding:"12px", borderRadius:12, border:"1px solid #334155", background:"none", color:"#94a3b8", fontSize:14, cursor:"pointer" }}
+                  >
+                    Batal
+                  </button>
+                  <button
+                    onClick={() => handleDelete(deleteConfirm.No)}
+                    style={{ flex:1, padding:"12px", borderRadius:12, border:"none", background:"#ef4444", color:"#fff", fontSize:14, fontWeight:700, cursor:"pointer" }}
+                  >
+                    Hapus
+                  </button>
+                </div>
+              </div>
+            </div>
+          )
+        }
+
+      {/* ── EDIT MODAL ── */}
+        {editModal && 
+          (
+          <div style={{ position:"fixed", inset:0, background:"#000000aa", display:"flex", alignItems:"flex-end", justifyContent:"center", zIndex:999 }}>
+            <div style={{ background:"#1e293b", borderRadius:"20px 20px 0 0", padding:24, width:"100%", maxHeight:"90vh", overflowY:"auto" }}>
+              
+              {/* Header */}
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
+                <div style={{ fontSize:16, fontWeight:700, color:"#f1f5f9" }}>✏️ Edit Transaksi</div>
+                <button
+                  onClick={() => setEditModal(null)}
+                  style={{ background:"none", border:"none", color:"#64748b", fontSize:24, cursor:"pointer", lineHeight:1 }}
+                >✕</button>
+              </div>
+
+              {/* Date */}
+              <div style={{ marginBottom:14 }}>
+                <label style={s.label}>Tanggal</label>
+                <input
+                  type="date"
+                  style={s.input}
+                  value={editForm.date}
+                  onChange={e => setEditForm(f => ({ ...f, date: e.target.value }))}
+                />
+              </div>
+
+              {/* Type */}
+              <div style={{ marginBottom:14 }}>
+                <label style={s.label}>Jenis Transaksi</label>
+                <div style={s.row}>
+                  {TYPES.map(t => (
+                    <button
+                      key={t}
+                      style={s.typeBtn(editForm.type === t, t)}
+                      onClick={() => setEditForm(f => ({ ...f, type: t }))}
+                    >
+                      {t === "Pengeluaran" ? "▼ Keluar" : "▲ Masuk"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Category */}
+              <div style={{ marginBottom:14 }}>
+                <label style={s.label}>Kategori</label>
+                <select
+                  style={s.select}
+                  value={editForm.category}
+                  onChange={e => setEditForm(f => ({ ...f, category: e.target.value }))}
+                >
+                  {categories.map(c => <option key={c}>{c}</option>)}
+                </select>
+              </div>
+
+              {/* Remarks */}
+              <div style={{ marginBottom:14 }}>
+                <label style={s.label}>Keterangan</label>
+                <input
+                  type="text"
+                  style={s.input}
+                  value={editForm.remarks}
+                  onChange={e => setEditForm(f => ({ ...f, remarks: e.target.value }))}
+                />
+              </div>
+
+              {/* Total */}
+              <div style={{ marginBottom:20 }}>
+                <label style={s.label}>Jumlah (Rp)</label>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  style={s.input}
+                  value={editForm.total}
+                  onChange={e => setEditForm(f => ({ ...f, total: e.target.value }))}
+                />
+              </div>
+
+              {/* Submit */}
+              <button
+                style={s.submitBtn}
+                onClick={handleEditSubmit}
+                disabled={submitting}
+              >
+                {submitting ? "Menyimpan…" : "💾 Simpan Perubahan"}
+              </button>
+
+            </div>
+          </div>
+          )
+        }
+  
       <nav style={s.nav}>
         {[
           {id:"dashboard",icon:"📊",label:"Dashboard"},

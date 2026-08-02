@@ -22,3 +22,21 @@ export async function saveTransaction(payload) {
   });
   return { success: true };
 }
+
+export async function editTransaction(payload) {
+  await fetch(APPS_SCRIPT_URL, {
+    method: "POST",
+    mode: "no-cors",
+    body: JSON.stringify({ ...payload, action: "edit" }),
+  });
+  return { success: true };
+}
+
+export async function deleteTransaction(No) {
+  await fetch(APPS_SCRIPT_URL, {
+    method: "POST",
+    mode: "no-cors",
+    body: JSON.stringify({ action: "delete", No }),
+  });
+  return { success: true };
+}
