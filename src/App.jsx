@@ -220,6 +220,7 @@ export default function App()
       }
       setEditForm
         ({
+        UUID:     t.UUID,
         No:       t.No,
         date:     dateStr,
         category: t.Category,
@@ -254,10 +255,10 @@ export default function App()
         } finally { setSubmitting(false); }
     };
 
-  const handleDelete = async (No) => 
+  const handleDelete = async (UUID) => 
     {
     try {
-      await deleteTransaction(No);
+      await deleteTransaction(UUID);
       showToast("Transaksi dihapus ✓");
       setDeleteConfirm(null);
       setSwipedId(null);
@@ -613,7 +614,7 @@ export default function App()
                       {
                         dateStr = raw.slice(0, 10);
                       }
-                  const isOpen = swipedId === t.No;
+                  const isOpen = swipedId === t.UUID;
 
                   return (
                     <div key={i} style={{ position:"relative", overflow:"hidden", borderBottom:"1px solid #334155" }}>
@@ -642,7 +643,7 @@ export default function App()
                           transition:"transform 0.25s ease",
                           cursor:"pointer"
                         }}
-                        onClick={() => setSwipedId(isOpen ? null : t.No)}
+                        onClick={() => setSwipedId(isOpen ? null : t.UUID)}
                         >
                         <div style={s.txLeft}>
                           <div style={s.txName}>
@@ -691,7 +692,7 @@ export default function App()
                     Batal
                   </button>
                   <button
-                    onClick={() => handleDelete(deleteConfirm.No)}
+                    onClick={() => handleDelete(deleteConfirm.UUID)}
                     style={{ flex:1, padding:"12px", borderRadius:12, border:"none", background:"#ef4444", color:"#fff", fontSize:14, fontWeight:700, cursor:"pointer" }}
                   >
                     Hapus

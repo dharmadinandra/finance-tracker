@@ -18,7 +18,7 @@ export async function saveTransaction(payload) {
   await fetch(APPS_SCRIPT_URL, {
     method: "POST",
     mode: "no-cors",
-    body: JSON.stringify(payload),
+    body: JSON.stringify({ ...payload, action: "add" }),
   });
   return { success: true };
 }
@@ -32,11 +32,11 @@ export async function editTransaction(payload) {
   return { success: true };
 }
 
-export async function deleteTransaction(No) {
+export async function deleteTransaction(uuid) {
   await fetch(APPS_SCRIPT_URL, {
     method: "POST",
     mode: "no-cors",
-    body: JSON.stringify({ action: "delete", No }),
+    body: JSON.stringify({ action: "delete", UUID: uuid }),
   });
   return { success: true };
 }
