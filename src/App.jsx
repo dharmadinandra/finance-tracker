@@ -160,6 +160,7 @@ export default function App()
   const [editModal, setEditModal]         = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [editForm, setEditForm]           = useState({});
+  const [search, setSearch]               = useState("");
 
   // ── Filters ──────────────────────────────────────────────────────────────
   const [filterYear,  setFilterYear]  = useState("all");
@@ -307,11 +308,17 @@ export default function App()
   };
 
   // ── Filtered transactions ─────────────────────────────────────────────────
-  const filtered = transactions.filter(t =>
-    (filterYear  === "all" || String(t.Year)     === filterYear) &&
-    (filterMonth === "all" || String(t.Month)    === filterMonth) &&
-    (filterCat   === "all" || t.Category         === filterCat)
-  );
+  const filtered = transactions.filter(t => {
+    const matchYear = filterYear === "all" || String(t.Year) === filterYear;
+    const matchMonth = filterMonth === "all" || String(t.Month) === filterMonth;
+    const matchCat = fiflterCat === "all" || t.Category === filterCat;
+    const q = search.toLowerCase().trim();
+    const matchSearch = q === "" || 
+      String(t.Remarks).toLowerCase().includes(q) ||
+      String(t.Category).toLowerCase().includes(q) ||
+      String(Math.abs(perseTotal(t.Total))).includes(q);
+    return matchYear && matchMonth && matchCat && matchSearch;
+  });
 
   // ── Summary ───────────────────────────────────────────────────────────────
   const totalIn  = filtered.filter(t => t.Type === "Pemasukan")
@@ -585,6 +592,43 @@ export default function App()
       {tab === "history" && 
         (
           <div style={{padding:"14px 14px 8px"}}>
+            {/* Search Bar */}
+          <div style={{ marginBottom:10, position:"relative" }}>
+            <input
+              type="text"
+              placeholder="🔍 Cari transaksi, kategori, jumlah..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              style={{
+                width:"100%",
+                background:"#1e293b",
+                border:"1px solid #334155",
+                borderRadius:12,
+                padding:"12px 40px 12px 16px",
+                color:"#f1f5f9",
+                fontSize:14,
+                boxSizing:"border-box",
+                outline:"none",
+              }}
+            />
+            {search !== "" && (
+              <button
+                onClick={() => setSearch("")}
+                style={{
+                  position:"absolute",
+                  right:12,
+                  top:"50%",
+                  transform:"translateY(-50%)",
+                  background:"none",
+                  border:"none",
+                  color:"#64748b",
+                  fontSize:18,
+                  cursor:"pointer",
+                  lineHeight:1,
+                }}
+              >✕</button>
+            )}
+          </div>
             {/* Category filter */}
             <div style={{...s.filterBlock, marginBottom:10}}>
             <div style={s.filterTitle}>🔍 Filter Kategori</div>
@@ -597,7 +641,12 @@ export default function App()
           </div>
 
           <div style={s.card}>
-            <div style={{fontSize:11,color:"#64748b",marginBottom:10}}>{filtered.length} transaksi ditemukan</div>
+            <div style={{fontSize:11,color:"#64748b",marginBottom:10}}>
+             {search
+              ? `${filtered.length} hasil untuk "${search}"`
+              : `${filtered.length} transaksi ditemukan`
+            }
+</div>
             {loading && <div style={{textAlign:"center",color:"#64748b",padding:20}}>Memuat…</div>}
             {!loading && filtered.slice().reverse().slice(0,100).map
               ((t,i) => 
@@ -800,7 +849,7 @@ export default function App()
           {id:"input",    icon:"➕",label:"Tambah"},
           {id:"history",  icon:"📋",label:"Riwayat"},
         ].map(n => (
-          <button key={n.id} style={s.navBtn(tab===n.id)} onClick={()=>setTab(n.id)}>
+          <button key={n.id} style={s.navBtn(tab===n.id)} onClick={() => { setTab(n.id); setSearch(""); }}>
             <span style={{fontSize:20}}>{n.icon}</span>
             {n.label}
           </button>
