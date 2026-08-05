@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { getTransactions, getCategories, saveTransaction, editTransaction, deleteTransaction } from "./services/api";
+import { getTransactions, getCategories, saveTransaction, editTransaction, deleteTransaction, readCache, writeCache } from "./services/api";
 
 // ── PIN LOCK ───────────────────────────────────────────────────────────────
 const CORRECT_PIN = "1402"; // ← GANTI dengan PIN kamu
@@ -17,10 +17,13 @@ function PinLock({ onUnlock })
   {
     if (locked && countdown > 0) 
       {
-      const t = setTimeout(() => setCountdown(c => c - 1), 1000);
+      const t = setTimeout(() => 
+        {
+        if (countdown === 1) setLocked(false);
+        else setCountdown(c => c - 1);
+        }, 1000);
       return () => clearTimeout(t);
       }
-    if (locked && countdown === 0) setLocked(false);
   }, [locked, countdown]);
 
   const handleKey = (k) => 
@@ -107,6 +110,8 @@ const TYPES = ["Pengeluaran", "Pemasukan"];
 const PIE_COLORS = ["#6366f1","#f59e0b","#ec4899","#10b981","#3b82f6","#8b5cf6","#ef4444","#6b7280","#f97316","#14b8a6","#a855f7","#06b6d4"];
 const MONTH_NAMES = ["","Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
 
+const CATEGORIES = ["Transportasi","Makanan","Belanja","Hiburan","Kesehatan","Pendidikan","Tagihan","Lainnya","Pemasukan"];
+
 const COLORS = {
   Transportasi:"#6366f1",Makanan:"#f59e0b",Belanja:"#ec4899",
   Hiburan:"#10b981",Kesehatan:"#3b82f6",Pendidikan:"#8b5cf6",
@@ -152,8 +157,15 @@ export default function App()
   const [unlocked, setUnlocked] = useState(false);
   const [tab, setTab]                     = useState("dashboard");
   const [transactions, setTransactions]   = useState([]);
-  const [categories, setCategories]       = useState([]);
+  const [categories, setCategories]       = useState(() => {
+    const c = readCache("categories");
+    return (c && Array.isArray(c.data) && c.data.length) ? c.data : CATEGORIES;
+  });
   const [loading, setLoading]             = useState(false);
+  const [refreshing, setRefreshing]       = useState(false);
+  const [dataState, setDataState]         = useState("loading");
+  const [errorMsg, setErrorMsg]           = useState("");
+  const [lastUpdated, setLastUpdated]     = useState(null);
   const [submitting, setSubmitting]       = useState(false);
   const [toast, setToast]                 = useState(null);
   const [swipedId,  setSwipedId]          = useState(null);
@@ -169,7 +181,7 @@ export default function App()
 
   const [form, setForm] = useState({
     date: new Date().toISOString().split("T")[0],
-    category: "",
+    category: CATEGORIES[0],
     type: TYPES[0],
     remarks: "",
     total: "",
@@ -177,36 +189,73 @@ export default function App()
 
   const isDemo = false;
 
-  const showToast = (msg, ok = true) => {
+  const showToast = useCallback((msg, ok = true) => {
     setToast({ msg, ok });
     setTimeout(() => setToast(null), 3000);
-  };
+  }, []);
 
-  const fetchData = useCallback(async () => {
-    if (isDemo) { setTransactions(MOCK); return; }
-    setLoading(true);
+  const fetchData = useCallback(async (opts = {}) => {
+    if (isDemo) { setTransactions(MOCK); setDataState("loaded"); return; }
+
+    const { background = false } = opts;
+    if (background) {
+      setRefreshing(true);
+    } else {
+      const cached = readCache("transactions");
+      if (cached && Array.isArray(cached.data)) {
+        setTransactions(cached.data);
+        setLastUpdated(new Date(cached.savedAt));
+        setDataState("loaded");
+      } else {
+        setLoading(true);
+      }
+    }
+
     try {
       const data = await getTransactions();
       if (!Array.isArray(data)) throw new Error("bukan array");
       setTransactions(data);
-      window.__transactions = data; 
+      writeCache("transactions", data);
+      setLastUpdated(new Date());
+      setDataState("loaded");
+    } catch (err) {
+      const isAbort = err && (err.name === "AbortError" || String(err.message).toLowerCase().includes("abort"));
+      const cached = readCache("transactions");
+      if (cached && Array.isArray(cached.data) && cached.data.length > 0) {
+        showToast("Gagal refresh · menampilkan data tersimpan", false);
+      } else {
+        setErrorMsg(isAbort
+          ? "Koneksi lambat atau timeout. Periksa internet, lalu coba lagi."
+          : "Gagal memuat data dari Google Sheets. Periksa koneksi internet.");
+        setDataState("error");
+      }
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [isDemo, showToast]);
+
+  const loadCategories = useCallback(async () => {
+    try {
+      const d = await getCategories();
+      if (Array.isArray(d) && d.length > 0) {
+        setCategories(d);
+        writeCache("categories", d);
+        setForm(f => {
+          const valid = f.category && d.includes(f.category);
+          return { ...f, category: valid ? f.category : d[0] };
+        });
+      }
     } catch {
-      showToast("Gagal memuat data", false);
-      setTransactions(MOCK);
-    } finally { setLoading(false); }
-  }, [isDemo]);
+      // offline / error: pakai CATEGORIES fallback
+    }
+  }, []);
 
   useEffect(() => {
-    fetchData();
-    async function loadCats() {
-      try {
-        const data = await getCategories();
-        setCategories(data);
-        if (data.length > 0) setForm(f => ({ ...f, category: data[0] }));
-      } catch(err) { console.error(err); }
-    }
-    loadCats();
-  }, [fetchData]);
+    const t1 = setTimeout(fetchData, 0);
+    const t2 = setTimeout(loadCategories, 0);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [fetchData, loadCategories]);
 
   const handleEdit = (t) => 
     {
@@ -219,8 +268,7 @@ export default function App()
       } else {
         dateStr = raw.slice(0, 10);
       }
-      setEditForm
-        ({
+      setEditForm({
         UUID:     t.UUID,
         No:       t.No,
         date:     dateStr,
@@ -409,6 +457,7 @@ export default function App()
     navBtn:     (active) => ({ flex:1, padding:"12px 0 8px", background:"none", border:"none", color: active?"#6366f1":"#64748b", cursor:"pointer", fontSize:10, fontWeight: active?700:400, display:"flex", flexDirection:"column", alignItems:"center", gap:3 }),
 
     toast:      (ok) => ({ position:"fixed", top:20, left:"50%", transform:"translateX(-50%)", background: ok?"#10b981":"#ef4444", color:"#fff", padding:"10px 20px", borderRadius:12, fontWeight:700, fontSize:13, zIndex:999, whiteSpace:"nowrap", boxShadow:"0 4px 20px #0008" }),
+    errorBanner:{ display:"flex", alignItems:"center", gap:12, margin:"8px 14px 0", background:"#ef444422", border:"1px solid #ef4444", borderRadius:12, padding:"10px 12px" },
   };
 
   return (
@@ -423,9 +472,32 @@ export default function App()
             <p style={s.headerTitle}>💰 Catatan Keuangan</p>
             <p style={s.headerSub}>Personal Finance Tracker</p>
           </div>
-          {loading && <div style={{fontSize:11,color:"#64748b"}}>Memuat…</div>}
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
+            {lastUpdated && !loading && (
+              <div style={{fontSize:10,color:"#64748b"}}>Update {lastUpdated.toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"})}</div>
+            )}
+            {loading && <div style={{fontSize:11,color:"#64748b"}}>Memuat…</div>}
+            {refreshing && <div style={{fontSize:11,color:"#f59e0b"}}>Menyegarkan…</div>}
+            {!loading && !refreshing && (
+              <button
+                onClick={() => fetchData({ background: true })}
+                title="Muat ulang data"
+                style={{background:"none",border:"none",color:"#94a3b8",fontSize:18,cursor:"pointer",lineHeight:1,padding:4}}
+              >🔄</button>
+            )}
+          </div>
         </div>
       </div>
+
+      {dataState === "error" && (
+        <div style={s.errorBanner}>
+          <div style={{fontSize:12,color:"#fca5a5",flex:1}}>⚠️ {errorMsg}</div>
+          <button
+            onClick={() => fetchData()}
+            style={{background:"#ef4444",border:"none",color:"#fff",padding:"8px 14px",borderRadius:10,fontSize:12,fontWeight:700,cursor:"pointer"}}
+          >🔄 Coba Lagi</button>
+        </div>
+      )}
 
       {/* ── DASHBOARD TAB ── */}
       {tab === "dashboard" && (
@@ -516,7 +588,7 @@ export default function App()
                         nameKey="name"
                         cx="50%" cy="50%"
                         outerRadius={80}
-                        label={({name,percent}) => percent > 0.04 ? `${(percent*100).toFixed(0)}%` : ""}
+                        label={({ percent }) => percent > 0.04 ? `${(percent*100).toFixed(0)}%` : ""}
                         labelLine={false}
                         fontSize={9}
                       >
@@ -648,9 +720,8 @@ export default function App()
             }
 </div>
             {loading && <div style={{textAlign:"center",color:"#64748b",padding:20}}>Memuat…</div>}
-            {!loading && filtered.slice().reverse().slice(0,100).map
-              ((t,i) => 
-                {
+            {!loading && filtered.slice().reverse().slice(0,100).map((t,i) => 
+              {
                   const amt = parseTotal(t.Total);
                   const raw = String(t.Date);
                   let dateStr;
