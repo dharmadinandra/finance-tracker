@@ -32,6 +32,63 @@ const CACHE_TX = "ft_tx_v2";
 const CACHE_CAT = "ft_cat_v2";
 const CACHE_TTL = 300; // 5 menit
 
+// CacheService limit ~100 KB per key. Data transaksi bisa lebih besar,
+// jadi kita pecah ke beberapa key (~80 KB) dan rakit ulang saat baca.
+const CACHE_CHUNK = 80000;
+
+function cacheGetBig(key) {
+  try {
+    const cache = CacheService.getScriptCache();
+    const keysRaw = cache.get(key + "::keys");
+    if (!keysRaw) return cache.get(key); // kasus kecil: satu key
+
+    const keys = JSON.parse(keysRaw);
+    const parts = [];
+    for (let i = 0; i < keys.length; i++) {
+      const p = cache.get(keys[i]);
+      if (!p) return null;
+      parts.push(p);
+    }
+    return parts.join("");
+  } catch (e) {
+    return null;
+  }
+}
+
+function cachePutBig(key, obj) {
+  try {
+    const cache = CacheService.getScriptCache();
+    const json = JSON.stringify(obj);
+    cache.remove(key + "::keys");
+    if (json.length <= CACHE_CHUNK) {
+      cache.put(key, json, CACHE_TTL);
+      return;
+    }
+    const chunkKeys = [];
+    for (let i = 0; i < json.length; i += CACHE_CHUNK) {
+      const k = key + "::" + chunkKeys.length;
+      cache.put(k, json.substr(i, CACHE_CHUNK), CACHE_TTL);
+      chunkKeys.push(k);
+    }
+    cache.put(key + "::keys", JSON.stringify(chunkKeys), CACHE_TTL);
+    cache.remove(key);
+  } catch (e) {
+    // Cache gagal (kuota dll) → jangan blokir respons, cukup lewati.
+  }
+}
+
+function cacheRemoveBig(key) {
+  try {
+    const cache = CacheService.getScriptCache();
+    const keysRaw = cache.get(key + "::keys");
+    cache.remove(key);
+    cache.remove(key + "::keys");
+    if (keysRaw) {
+      try { cache.removeAll(JSON.parse(keysRaw)); } catch (e) {}
+    }
+  } catch (e) {}
+}
+
 // ── Dasar ──────────────────────────────────────────────────────────────────
 function getSS_() {
   const active = SpreadsheetApp.getActiveSpreadsheet();
@@ -96,8 +153,7 @@ function rowsToObjects_(rows) {
 
 // ── Baca data + cache server ───────────────────────────────────────────────
 function getTransactionsCached_() {
-  const cache = CacheService.getScriptCache();
-  const cached = cache.get(CACHE_TX);
+  const cached = cacheGetBig(CACHE_TX);
   if (cached) {
     try { return JSON.parse(cached); } catch (e) { /* lanjut baca ulang */ }
   }
@@ -105,13 +161,12 @@ function getTransactionsCached_() {
     .filter(function (t) {
       return String(t.UUID || "").trim() !== "" && String(t.Date || "").trim() !== "";
     });
-  cache.put(CACHE_TX, JSON.stringify(data), CACHE_TTL);
+  cachePutBig(CACHE_TX, data);
   return data;
 }
 
 function getCategoriesCached_() {
-  const cache = CacheService.getScriptCache();
-  const cached = cache.get(CACHE_CAT);
+  const cached = cacheGetBig(CACHE_CAT);
   if (cached) {
     try { return JSON.parse(cached); } catch (e) { /* lanjut */ }
   }
@@ -122,7 +177,7 @@ function getCategoriesCached_() {
     .filter(function (r) { return String(r[1]).trim().toUpperCase() === "Y"; })
     .map(function (r) { return String(r[0]).trim(); })
     .filter(function (c) { return c; });
-  cache.put(CACHE_CAT, JSON.stringify(cats), CACHE_TTL);
+  cachePutBig(CACHE_CAT, cats);
   return cats;
 }
 
@@ -183,7 +238,7 @@ function doPost(e) {
     else return json_({ success: false, message: "Unknown action: " + action });
 
     // Data berubah → cache harus dibaca ulang lain kali.
-    CacheService.getScriptCache().remove(CACHE_TX);
+    cacheRemoveBig(CACHE_TX);
     return result;
   } catch (err) {
     return json_({ success: false, error: err.toString() });

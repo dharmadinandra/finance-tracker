@@ -1,6 +1,6 @@
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw4DyIXu0RYzZSG1wm434wOFKhNdknyYNEVg7TNC2kq46ptHuno2aGndhnKpmYpSTWSlw/exec";
 
-const TIMEOUT_MS = 20000;
+const TIMEOUT_MS = 60000;
 
 function buildUrl(params = {}) {
   const q = new URLSearchParams();
