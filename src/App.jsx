@@ -308,17 +308,11 @@ export default function App()
   };
 
   // ── Filtered transactions ─────────────────────────────────────────────────
-  const filtered = transactions.filter(t => {
-    const matchYear = filterYear === "all" || String(t.Year) === filterYear;
-    const matchMonth = filterMonth === "all" || String(t.Month) === filterMonth;
-    const matchCat = fiflterCat === "all" || t.Category === filterCat;
-    const q = search.toLowerCase().trim();
-    const matchSearch = q === "" || 
-      String(t.Remarks).toLowerCase().includes(q) ||
-      String(t.Category).toLowerCase().includes(q) ||
-      String(Math.abs(perseTotal(t.Total))).includes(q);
-    return matchYear && matchMonth && matchCat && matchSearch;
-  });
+  const filtered = transactions.filter(t =>
+  (filterYear  === "all" || String(t.Year)  === filterYear) &&
+  (filterMonth === "all" || String(t.Month) === filterMonth) &&
+  (filterCat   === "all" || t.Category      === filterCat)
+  );
 
   // ── Summary ───────────────────────────────────────────────────────────────
   const totalIn  = filtered.filter(t => t.Type === "Pemasukan")
