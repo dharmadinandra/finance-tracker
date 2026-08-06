@@ -142,6 +142,17 @@ function parseTotal(raw) {
   return Number(str) || 0;
 }
 
+// Normalisasi tanggal ke "YYYY-MM-DD" (tangani format ISO dengan timezone).
+function formatDateStr(raw) {
+  const s = String(raw || "");
+  if (s.includes("T")) {
+    const dt = new Date(s);
+    dt.setHours(dt.getHours() + 7);
+    return dt.toISOString().slice(0, 10);
+  }
+  return s.slice(0, 10);
+}
+
 const MOCK = [
   { No:2,  Date:"2025-08-01", Year:2025, Month:8, Category:"Transportasi", Type:"Pengeluaran", Remarks:"Service Mobil",   Total:-1000000 },
   { No:21, Date:"2025-08-03", Year:2025, Month:8, Category:"Transportasi", Type:"Pengeluaran", Remarks:"Gojek / Grab",    Total:-80500  },
@@ -173,6 +184,7 @@ export default function App()
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [editForm, setEditForm]           = useState({});
   const [search, setSearch]               = useState("");
+  const [catDetail, setCatDetail]         = useState(null);
 
   // ── Filters ──────────────────────────────────────────────────────────────
   const [filterYear,  setFilterYear]  = useState("all");
@@ -384,6 +396,15 @@ export default function App()
     return { name: cat, value: sum };
   }).filter(d => d.value > 0).sort((a,b) => b.value - a.value);
 
+  // ── Detail transaksi per kategori (dari klik pie chart) ──────────────────
+  const catTransactions = catDetail
+    ? filtered
+        .filter(t => t.Category === catDetail && t.Type === "Pengeluaran")
+        .slice()
+        .sort((a,b) => formatDateStr(b.Date) > formatDateStr(a.Date) ? 1 : -1)
+    : [];
+  const catTotal = catTransactions.reduce((s,t) => s + Math.abs(parseTotal(t.Total)), 0);
+
   // ── Bar chart: daily cash flow ────────────────────────────────────────────
   const byDay = {};
   filtered.forEach(t => {
@@ -591,6 +612,8 @@ export default function App()
                         label={({ percent }) => percent > 0.04 ? `${(percent*100).toFixed(0)}%` : ""}
                         labelLine={false}
                         fontSize={9}
+                        onClick={(data) => setCatDetail(data.name)}
+                        style={{ cursor:"pointer" }}
                       >
                         {byCat.map((_,i) => <Cell key={i} fill={PIE_COLORS[i%PIE_COLORS.length]} />)}
                       </Pie>
@@ -601,7 +624,7 @@ export default function App()
                   {/* Legend with amounts */}
                   <div style={{display:"flex",flexDirection:"column",gap:6,marginTop:4}}>
                     {byCat.map((d,i) => (
-                      <div key={d.name} style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                      <div key={d.name} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"6px 8px",borderRadius:10,cursor:"pointer"}} onClick={() => setCatDetail(d.name)}>
                         <div style={{display:"flex",alignItems:"center",gap:6}}>
                           <span style={{width:10,height:10,borderRadius:"50%",background:PIE_COLORS[i%PIE_COLORS.length],display:"inline-block",flexShrink:0}} />
                           <span style={{fontSize:12,color:"#cbd5e1"}}>{d.name}</span>
@@ -609,6 +632,7 @@ export default function App()
                         <div style={{display:"flex",gap:10,alignItems:"center"}}>
                           <span style={{fontSize:10,color:"#64748b"}}>{((d.value/totalOut)*100).toFixed(1)}%</span>
                           <span style={{fontSize:12,fontWeight:700,color:"#ef4444"}}>{formatRp(d.value)}</span>
+                          <span style={{fontSize:11,color:"#475569"}}>›</span>
                         </div>
                       </div>
                     ))}
@@ -913,7 +937,52 @@ export default function App()
           </div>
           )
         }
-  
+
+      {/* ── CATEGORY DETAIL MODAL ── */}
+        {catDetail && 
+          (
+          <div style={{ position:"fixed", inset:0, background:"#000000aa", display:"flex", alignItems:"flex-end", justifyContent:"center", zIndex:999 }} onClick={() => setCatDetail(null)}>
+            <div style={{ background:"#1e293b", borderRadius:"20px 20px 0 0", padding:24, width:"100%", maxHeight:"85vh", overflowY:"auto", boxSizing:"border-box" }} onClick={e => e.stopPropagation()}>
+              
+              {/* Header */}
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:16 }}>
+                <div>
+                  <div style={{ fontSize:16, fontWeight:700, color:"#f1f5f9" }}>{catDetail}</div>
+                  <div style={{ fontSize:11, color:"#64748b", marginTop:4 }}>{filterLabel} · {catTransactions.length} transaksi</div>
+                </div>
+                <button
+                  onClick={() => setCatDetail(null)}
+                  style={{ background:"none", border:"none", color:"#64748b", fontSize:24, cursor:"pointer", lineHeight:1 }}
+                >✕</button>
+              </div>
+
+              {/* Total */}
+              <div style={{ background:"#0f172a", borderRadius:12, padding:"12px 14px", borderLeft:"3px solid #ef4444", marginBottom:16 }}>
+                <div style={{ fontSize:9, color:"#64748b", fontWeight:700, textTransform:"uppercase" }}>Total Pengeluaran</div>
+                <div style={{ fontSize:20, fontWeight:900, color:"#ef4444", marginTop:2 }}>{formatRpFull(catTotal)}</div>
+              </div>
+
+              {/* List */}
+              {catTransactions.length === 0
+                ? <div style={{ textAlign:"center", color:"#64748b", padding:"24px 0", fontSize:12 }}>Tidak ada transaksi untuk filter ini</div>
+                : catTransactions.map((t,i) => {
+                    const amt = Math.abs(parseTotal(t.Total));
+                    return (
+                      <div key={i} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 0", borderBottom:"1px solid #0f172a" }}>
+                        <div style={{ flex:1, paddingRight:12 }}>
+                          <div style={{ fontSize:13, fontWeight:600, color:"#f1f5f9" }}>{t.Remarks}</div>
+                          <div style={{ fontSize:11, color:"#64748b", marginTop:2 }}>{formatDateStr(t.Date)}</div>
+                        </div>
+                        <div style={{ fontSize:14, fontWeight:700, color:"#ef4444", whiteSpace:"nowrap" }}>−{formatRpFull(amt)}</div>
+                      </div>
+                    );
+                  })
+              }
+            </div>
+          </div>
+          )
+        }
+
       <nav style={s.nav}>
         {[
           {id:"dashboard",icon:"📊",label:"Dashboard"},
