@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { getTransactions, getCategories, saveTransaction, editTransaction, deleteTransaction, readCache, writeCache } from "./services/api";
+import { getTransactions, getCategories, saveTransaction, editTransaction, deleteTransaction, readCache, writeCache, describeError } from "./services/api";
 
 // ── PIN LOCK ───────────────────────────────────────────────────────────────
 const CORRECT_PIN = "1402"; // ← GANTI dengan PIN kamu
@@ -231,14 +231,12 @@ export default function App()
       setLastUpdated(new Date());
       setDataState("loaded");
     } catch (err) {
-      const isAbort = err && (err.name === "AbortError" || String(err.message).toLowerCase().includes("abort"));
+      const detail = describeError(err);
       const cached = readCache("transactions");
       if (cached && Array.isArray(cached.data) && cached.data.length > 0) {
-        showToast("Gagal refresh · menampilkan data tersimpan", false);
+        showToast(`Gagal refresh · ${detail}`, false);
       } else {
-        setErrorMsg(isAbort
-          ? "Koneksi lambat atau timeout. Periksa internet, lalu coba lagi."
-          : "Gagal memuat data dari Google Sheets. Periksa koneksi internet.");
+        setErrorMsg(`Gagal memuat data dari Google Sheets (${detail}). Cek koneksi internet.`);
         setDataState("error");
       }
     } finally {
@@ -310,9 +308,10 @@ export default function App()
         showToast("Transaksi berhasil diupdate ✓");
         setEditModal(null);
         fetchData();
-      } catch 
+      } catch (err) 
         {
-        showToast("Gagal mengupdate", false);
+        showToast(`Gagal mengupdate · ${describeError(err)}`, false);
+        fetchData();
         } finally { setSubmitting(false); }
     };
 
@@ -324,9 +323,10 @@ export default function App()
       setDeleteConfirm(null);
       setSwipedId(null);
       fetchData();
-      } catch 
+      } catch (err) 
       {
-      showToast("Gagal menghapus", false);
+      showToast(`Gagal menghapus · ${describeError(err)}`, false);
+      fetchData();
       }
     };
 
@@ -343,13 +343,14 @@ export default function App()
       };
       try 
       {
-      await saveTransaction(payload);
-      showToast("Berhasil disimpan ke Google Sheets ✓");
-      setForm(f => ({ ...f, remarks: "", total: "" }));
-      fetchData();
-      } catch 
+        await saveTransaction(payload);
+        showToast("Berhasil disimpan ke Google Sheets ✓");
+        setForm(f => ({ ...f, remarks: "", total: "" }));
+        fetchData();
+      } catch (err) 
         {
-        showToast("Gagal menyimpan", false);
+        showToast(`Gagal menyimpan · ${describeError(err)}`, false);
+        fetchData();
         } finally { setSubmitting(false); }
     };
 

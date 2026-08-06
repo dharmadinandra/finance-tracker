@@ -1,6 +1,12 @@
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw4DyIXu0RYzZSG1wm434wOFKhNdknyYNEVg7TNC2kq46ptHuno2aGndhnKpmYpSTWSlw/exec";
 
-const TIMEOUT_MS = 60000;
+const TIMEOUT_MS = 120000;
+
+export function describeError(err) {
+  if (!err) return "kesalahan tak dikenal";
+  if (err.name === "AbortError") return "waktu tunggu habis (timeout)";
+  return err.message || String(err);
+}
 
 function buildUrl(params = {}) {
   const q = new URLSearchParams();
@@ -15,6 +21,22 @@ function withTimeout(url, options, timeout = TIMEOUT_MS) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeout);
   return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timer));
+}
+
+// Retry 1x khusus untuk GET bila timeout (cold start Apps Script),
+// supaya koneksi kedua memanfaatkan instance yang sudah hangat.
+async function fetchRetry(url, options, attempts = 2) {
+  let lastErr;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await withTimeout(url, options);
+    } catch (err) {
+      lastErr = err;
+      const isAbort = err && err.name === "AbortError";
+      if (!isAbort || i === attempts - 1) throw err;
+    }
+  }
+  throw lastErr;
 }
 
 async function parseJson(res) {
@@ -69,7 +91,7 @@ export function isCacheFresh(entry, ttl = CACHE_TTL_MS) {
 // ── Reads ──────────────────────────────────────────────────────────────────
 export async function getTransactions(params = {}) {
   const url = buildUrl({ action: "transactions", ...params });
-  const res = await withTimeout(url, { method: "GET" });
+  const res = await fetchRetry(url, { method: "GET" });
   if (!res.ok) throw new Error(`Server error ${res.status}`);
   const data = await parseJson(res);
   if (!Array.isArray(data)) throw new Error("Data bukan array");
@@ -78,10 +100,9 @@ export async function getTransactions(params = {}) {
 
 export async function getCategories() {
   const url = buildUrl({ action: "getCategories" });
-  const res = await withTimeout(url, { method: "GET" });
+  const res = await fetchRetry(url, { method: "GET" });
   if (!res.ok) throw new Error(`Server error ${res.status}`);
   const data = await parseJson(res);
-  if (data && data.error) throw new Error(data.error);
   if (!Array.isArray(data)) throw new Error("Data bukan array");
   return data;
 }
