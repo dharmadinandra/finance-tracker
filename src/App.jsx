@@ -302,9 +302,15 @@ export default function App()
   const confirmExit = () => {
     exitRef.current = true;
     setExitOpen(false);
-    const n = window.history.length - 1;
-    if (n > 0) history.go(-n);
-    setTimeout(() => window.close(), 100);
+    window.close();
+    // window.close() is blocked in some installed PWAs. If we're still running
+    // after a moment, collapse to the root entry and ask the user to press back,
+    // which reliably closes the app.
+    setTimeout(() => {
+      const n = window.history.length - 1;
+      if (n > 0) window.history.go(-n);
+      showToast("Tekan tombol kembali lagi untuk menutup aplikasi", false);
+    }, 300);
   };
 
   const handleEdit = (t) => 
