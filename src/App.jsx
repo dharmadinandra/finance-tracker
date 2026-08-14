@@ -307,7 +307,7 @@ export default function App()
         await editTransaction(payload);
         showToast("Transaksi berhasil diupdate ✓");
         setEditModal(null);
-        fetchData();
+        setTimeout(() => fetchData(),3000);
       } catch (err) 
         {
         showToast(`Gagal mengupdate · ${describeError(err)}`, false);
@@ -322,7 +322,7 @@ export default function App()
       showToast("Transaksi dihapus ✓");
       setDeleteConfirm(null);
       setSwipedId(null);
-      fetchData();
+      setTimeout(() => fetchData(), 3000);
       } catch (err) 
       {
       showToast(`Gagal menghapus · ${describeError(err)}`, false);
@@ -346,7 +346,7 @@ export default function App()
         await saveTransaction(payload);
         showToast("Berhasil disimpan ke Google Sheets ✓");
         setForm(f => ({ ...f, remarks: "", total: "" }));
-        fetchData();
+        setTimeout(() => fetchData(),3000);
       } catch (err) 
         {
         showToast(`Gagal menyimpan · ${describeError(err)}`, false);
