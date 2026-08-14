@@ -1,5 +1,35 @@
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw4DyIXu0RYzZSG1wm434wOFKhNdknyYNEVg7TNC2kq46ptHuno2aGndhnKpmYpSTWSlw/exec";
 
+// ── Cache helpers (localStorage) ──────────────────────────────────────────
+const CACHE_PREFIX = "finance-cache:";
+
+export function readCache(key) {
+  try {
+    const raw = localStorage.getItem(CACHE_PREFIX + key);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function writeCache(key, data) {
+  try {
+    localStorage.setItem(CACHE_PREFIX + key, JSON.stringify({ savedAt: new Date().toISOString(), data }));
+  } catch {
+    // storage unavailable (private mode / full): ignore
+  }
+}
+
+// ── Error description helper ──────────────────────────────────────────────
+export function describeError(err) {
+  if (!err) return "kesalahan tidak diketahui";
+  if (err.name === "AbortError") return "waktu habis";
+  if (err instanceof TypeError && err.message.includes("fetch")) return "tidak ada koneksi internet";
+  const msg = String(err.message || err).trim();
+  if (!msg || msg === "undefined") return "kesalahan tidak diketahui";
+  return msg;
+}
+
 // ── Retry helper ──────────────────────────────────────────────────────────
 async function fetchWithRetry(url, options = {}, retries = 3, delayMs = 1500) {
   for (let i = 0; i < retries; i++) {

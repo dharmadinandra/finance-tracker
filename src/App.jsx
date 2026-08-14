@@ -185,6 +185,7 @@ export default function App()
   const [editForm, setEditForm]           = useState({});
   const [search, setSearch]               = useState("");
   const [catDetail, setCatDetail]         = useState(null);
+  const [exitOpen, setExitOpen]           = useState(false);
 
   // ── Filters ──────────────────────────────────────────────────────────────
   const [filterYear,  setFilterYear]  = useState("all");
@@ -266,6 +267,33 @@ export default function App()
     const t2 = setTimeout(loadCategories, 0);
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [fetchData, loadCategories]);
+
+  // ── Android back button (PWA) ─────────────────────────────────────────────
+  useEffect(() => {
+    history.pushState({ sentinel: true }, "");
+
+    const handleBack = () => {
+      if (editModal)          { setEditModal(null);          history.pushState({ sentinel: true }, ""); }
+      else if (deleteConfirm) { setDeleteConfirm(null);      history.pushState({ sentinel: true }, ""); }
+      else if (catDetail)     { setCatDetail(null);          history.pushState({ sentinel: true }, ""); }
+      else if (swipedId)      { setSwipedId(null);           history.pushState({ sentinel: true }, ""); }
+      else if (!exitOpen)     { setExitOpen(true);           history.pushState({ sentinel: true }, ""); }
+      // else: exitOpen already true → don't re-push, let the app close
+    };
+
+    window.addEventListener("popstate", handleBack);
+    return () => window.removeEventListener("popstate", handleBack);
+  }, [editModal, deleteConfirm, catDetail, swipedId, exitOpen]);
+
+  const cancelExit = () => {
+    setExitOpen(false);
+    history.pushState({ sentinel: true }, "");
+  };
+
+  const confirmExit = () => {
+    setExitOpen(false);
+    window.close();
+  };
 
   const handleEdit = (t) => 
     {
@@ -841,6 +869,34 @@ export default function App()
                     style={{ flex:1, padding:"12px", borderRadius:12, border:"none", background:"#ef4444", color:"#fff", fontSize:14, fontWeight:700, cursor:"pointer" }}
                   >
                     Hapus
+                  </button>
+                </div>
+              </div>
+            </div>
+          )
+        }
+
+      {/* ── EXIT CONFIRM ── */}
+        {exitOpen && 
+          (
+            <div style={{ position:"fixed", inset:0, background:"#000000aa", display:"flex", alignItems:"center", justifyContent:"center", zIndex:999, padding:24 }}>
+              <div style={{ background:"#1e293b", borderRadius:20, padding:24, width:"100%" }}>
+                <div style={{ fontSize:16, fontWeight:700, color:"#f1f5f9", marginBottom:8 }}>👋 Keluar dari Aplikasi?</div>
+                <div style={{ fontSize:13, color:"#94a3b8", marginBottom:20 }}>
+                  Yakin ingin menutup Catatan Keuangan?
+                </div>
+                <div style={{ display:"flex", gap:10 }}>
+                  <button
+                    onClick={cancelExit}
+                    style={{ flex:1, padding:"12px", borderRadius:12, border:"1px solid #334155", background:"none", color:"#94a3b8", fontSize:14, cursor:"pointer" }}
+                  >
+                    Batal
+                  </button>
+                  <button
+                    onClick={confirmExit}
+                    style={{ flex:1, padding:"12px", borderRadius:12, border:"none", background:"#ef4444", color:"#fff", fontSize:14, fontWeight:700, cursor:"pointer" }}
+                  >
+                    Keluar
                   </button>
                 </div>
               </div>
