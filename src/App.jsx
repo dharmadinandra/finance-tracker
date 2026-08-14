@@ -53,14 +53,14 @@ function PinLock({ onUnlock })
 
   const ps = 
   {
-    wrap:  { position:"fixed", inset:0, background:"#0f172a", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", zIndex:9999 },
+    wrap:  { position:"fixed", inset:0, background:"linear-gradient(165deg,#eef2ff 0%,#f8fafc 100%)", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", zIndex:9999 },
     logo:  { fontSize:48, marginBottom:8 },
-    title: { fontSize:20, fontWeight:700, color:"#f8fafc", marginBottom:4 },
+    title: { fontSize:20, fontWeight:700, color:"#0f172a", marginBottom:4 },
     sub:   { fontSize:13, color:"#64748b", marginBottom:36 },
     dots:  { display:"flex", gap:16, marginBottom:36 },
-    dot:   (filled) => ({ width:14, height:14, borderRadius:"50%", background: filled?"#6366f1":"#1e293b", border:"2px solid", borderColor: filled?"#6366f1":"#334155", transition:"all 0.15s" }),
+    dot:   (filled) => ({ width:14, height:14, borderRadius:"50%", background: filled?"#6366f1":"#ffffff", border:"2px solid", borderColor: filled?"#6366f1":"#cbd5e1", boxShadow:"0 1px 2px #0001", transition:"all 0.15s" }),
     grid:  { display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:12, width:240 },
-    key:   (special) => ({ height:64, borderRadius:16, border:"none", background: special?"#0f172a":"#1e293b", color: special?"#64748b":"#f1f5f9", fontSize:22, fontWeight:700, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }),
+    key:   (special) => ({ height:64, borderRadius:16, border:"none", background: special?"transparent":"#ffffff", boxShadow: special?"none":"0 1px 3px #00000012, 0 4px 12px #0000000a", color: special?"#94a3b8":"#0f172a", fontSize:22, fontWeight:700, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }),
     err:   { fontSize:12, color:"#ef4444", marginTop:16, height:18 },
     lock:  { fontSize:13, color:"#f59e0b", marginTop:16, textAlign:"center" },
   };
@@ -478,54 +478,54 @@ export default function App()
 
   // ── Styles ────────────────────────────────────────────────────────────────
   const s = {
-    app:        { fontFamily:"'Inter',system-ui,sans-serif", background:"#0f172a", minHeight:"100vh", color:"#f1f5f9", width:"100%", maxWidth:"100%", margin:"0 auto", position:"relative", paddingBottom:80, boxSizing:"border-box" },
-    header:     { background:"linear-gradient(135deg,#1e293b,#0f172a)", padding:"18px 16px 14px", borderBottom:"1px solid #1e293b" },
+    app:        { fontFamily:"'Inter',system-ui,sans-serif", background:"#f4f6fb", minHeight:"100vh", color:"#0f172a", width:"100%", maxWidth:"100%", margin:"0 auto", position:"relative", paddingBottom:80, boxSizing:"border-box" },
+    header:     { background:"linear-gradient(135deg,#6366f1,#8b5cf6)", padding:"18px 16px 14px" },
     headerRow:  { display:"flex", alignItems:"center", justifyContent:"space-between" },
-    headerTitle:{ fontSize:20, fontWeight:700, color:"#f8fafc", margin:0 },
-    headerSub:  { fontSize:12, color:"#64748b", marginTop:2 },
+    headerTitle:{ fontSize:20, fontWeight:700, color:"#ffffff", margin:0 },
+    headerSub:  { fontSize:12, color:"#e0e7ff", marginTop:2 },
     section:    { padding:"14px 14px 8px" },
-    card:       { background:"#1e293b", borderRadius:16, padding:"14px 16px", marginBottom:10 },
+    card:       { background:"#ffffff", borderRadius:16, padding:"14px 16px", marginBottom:10, boxShadow:"0 1px 2px #0f172a0d, 0 6px 20px #0f172a0a" },
 
     // Filter bar
-    filterBlock:{ background:"#1e293b", padding:"12px 14px", marginBottom:10, borderRadius:16 },
+    filterBlock:{ background:"#ffffff", padding:"12px 14px", marginBottom:10, borderRadius:16, boxShadow:"0 1px 2px #0f172a0d, 0 6px 20px #0f172a0a" },
     filterTitle:{ fontSize:10, color:"#64748b", fontWeight:700, textTransform:"uppercase", marginBottom:8, letterSpacing:"0.05em" },
     filterRow:  { display:"flex", gap:8, marginBottom:8, overflowX:"auto", paddingBottom:2 },
-    filterChip: (active) => ({ padding:"6px 14px", borderRadius:20, border:"none", background: active?"#6366f1":"#0f172a", color: active?"#fff":"#94a3b8", cursor:"pointer", fontSize:12, fontWeight:600, whiteSpace:"nowrap", flexShrink:0 }),
+    filterChip: (active) => ({ padding:"6px 14px", borderRadius:20, border:"none", background: active?"#6366f1":"#f1f5f9", color: active?"#fff":"#64748b", cursor:"pointer", fontSize:12, fontWeight:600, whiteSpace:"nowrap", flexShrink:0, boxShadow: active?"0 2px 8px #6366f155":"none" }),
 
     // Summary
     summaryLabel:{ fontSize:10, color:"#64748b", fontWeight:700, textTransform:"uppercase", marginBottom:12, display:"flex", alignItems:"center", gap:6 },
     statRow:    { display:"flex", gap:8, marginBottom:8 },
-    stat:       (color) => ({ flex:1, background:"#0f172a", borderRadius:12, padding:"10px 12px", borderLeft:`3px solid ${color}` }),
+    stat:       (color) => ({ flex:1, background:"#f8fafc", borderRadius:12, padding:"10px 12px", borderLeft:`3px solid ${color}` }),
     statLabel:  { fontSize:9, color:"#64748b", fontWeight:700, textTransform:"uppercase" },
     statVal:    (color) => ({ fontSize:14, fontWeight:800, color, marginTop:2 }),
-    balCard:    (pos) => ({ background:"#0f172a", borderRadius:12, padding:"12px 14px", borderLeft:`3px solid ${pos?"#6366f1":"#f59e0b"}`, marginBottom:0 }),
-    balLabel:   { fontSize:9, color:"#64748b", fontWeight:700, textTransform:"uppercase" },
-    balVal:     (pos) => ({ fontSize:20, fontWeight:900, color: pos?"#6366f1":"#f59e0b", marginTop:2 }),
+    balCard:    (pos) => ({ background:"linear-gradient(135deg,#6366f1,#8b5cf6)", borderRadius:12, padding:"12px 14px", borderLeft:`3px solid ${pos?"#a5b4fc":"#fcd34d"}`, marginBottom:0 }),
+    balLabel:   { fontSize:9, color:"#c7d2fe", fontWeight:700, textTransform:"uppercase" },
+    balVal:     { fontSize:20, fontWeight:900, color:"#ffffff", marginTop:2 },
 
-    chartTitle: { fontSize:12, fontWeight:700, color:"#94a3b8", marginBottom:10 },
+    chartTitle: { fontSize:12, fontWeight:700, color:"#475569", marginBottom:10 },
 
     // Input form
-    label:      { fontSize:11, color:"#94a3b8", marginBottom:4, display:"block", fontWeight:600, textTransform:"uppercase", letterSpacing:"0.05em" },
-    input:      { width:"100%", background:"#0f172a", border:"1px solid #334155", borderRadius:10, padding:"10px 12px", color:"#f1f5f9", fontSize:15, boxSizing:"border-box", outline:"none" },
-    select:     { width:"100%", background:"#0f172a", border:"1px solid #334155", borderRadius:10, padding:"10px 12px", color:"#f1f5f9", fontSize:15, boxSizing:"border-box", appearance:"none" },
+    label:      { fontSize:11, color:"#64748b", marginBottom:4, display:"block", fontWeight:600, textTransform:"uppercase", letterSpacing:"0.05em" },
+    input:      { width:"100%", background:"#f8fafc", border:"1px solid #e2e8f0", borderRadius:10, padding:"10px 12px", color:"#0f172a", fontSize:15, boxSizing:"border-box", outline:"none" },
+    select:     { width:"100%", background:"#f8fafc", border:"1px solid #e2e8f0", borderRadius:10, padding:"10px 12px", color:"#0f172a", fontSize:15, boxSizing:"border-box", appearance:"none" },
     row:        { display:"flex", gap:10 },
-    typeBtn:    (active, type) => ({ flex:1, padding:"10px 8px", borderRadius:10, border:`2px solid ${active?(type==="Pengeluaran"?"#ef4444":"#10b981"):"#334155"}`, background: active?(type==="Pengeluaran"?"#ef444422":"#10b98122"):"#0f172a", color: active?(type==="Pengeluaran"?"#ef4444":"#10b981"):"#64748b", cursor:"pointer", fontWeight:700, fontSize:14 }),
-    submitBtn:  { width:"100%", padding:"14px", borderRadius:12, background: submitting?"#334155":"linear-gradient(135deg,#6366f1,#8b5cf6)", border:"none", color:"#fff", fontSize:16, fontWeight:700, cursor: submitting?"not-allowed":"pointer", marginTop:4 },
+    typeBtn:    (active, type) => ({ flex:1, padding:"10px 8px", borderRadius:10, border:`2px solid ${active?(type==="Pengeluaran"?"#ef4444":"#10b981"):"#e2e8f0"}`, background: active?(type==="Pengeluaran"?"#fee2e2":"#d1fae5"):"#f8fafc", color: active?(type==="Pengeluaran"?"#b91c1c":"#047857"):"#64748b", cursor:"pointer", fontWeight:700, fontSize:14 }),
+    submitBtn:  { width:"100%", padding:"14px", borderRadius:12, background: submitting?"#94a3b8":"linear-gradient(135deg,#6366f1,#8b5cf6)", border:"none", color:"#fff", fontSize:16, fontWeight:700, cursor: submitting?"not-allowed":"pointer", marginTop:4, boxShadow: submitting?"none":"0 4px 14px #6366f144" },
 
     // History
-    txItem:     { display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 0", borderBottom:"1px solid #0f172a" },
+    txItem:     { display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 0", borderBottom:"1px solid #f1f5f9" },
     txLeft:     { flex:1 },
-    txName:     { fontSize:13, fontWeight:600, color:"#f1f5f9" },
+    txName:     { fontSize:13, fontWeight:600, color:"#0f172a" },
     txMeta:     { fontSize:11, color:"#64748b", marginTop:2 },
-    txAmt:      (pos) => ({ fontSize:14, fontWeight:700, color: pos?"#10b981":"#ef4444" }),
+    txAmt:      (pos) => ({ fontSize:14, fontWeight:700, color: pos?"#059669":"#dc2626" }),
     catDot:     (cat) => ({ width:7, height:7, borderRadius:"50%", background:COLORS[cat]||"#6366f1", display:"inline-block", marginRight:5 }),
 
     // Nav
-    nav:        { position:"fixed", bottom:0, left:0, right:0, width:"100%", background:"#1e293b", borderTop:"1px solid #334155", display:"flex", zIndex:100 },
-    navBtn:     (active) => ({ flex:1, padding:"12px 0 8px", background:"none", border:"none", color: active?"#6366f1":"#64748b", cursor:"pointer", fontSize:10, fontWeight: active?700:400, display:"flex", flexDirection:"column", alignItems:"center", gap:3 }),
+    nav:        { position:"fixed", bottom:0, left:0, right:0, width:"100%", background:"#ffffff", borderTop:"1px solid #e5e9f2", display:"flex", zIndex:100, boxShadow:"0 -2px 12px #0f172a08" },
+    navBtn:     (active) => ({ flex:1, padding:"12px 0 8px", background:"none", border:"none", color: active?"#6366f1":"#94a3b8", cursor:"pointer", fontSize:10, fontWeight: active?700:400, display:"flex", flexDirection:"column", alignItems:"center", gap:3 }),
 
-    toast:      (ok) => ({ position:"fixed", top:20, left:"50%", transform:"translateX(-50%)", background: ok?"#10b981":"#ef4444", color:"#fff", padding:"10px 20px", borderRadius:12, fontWeight:700, fontSize:13, zIndex:999, whiteSpace:"nowrap", boxShadow:"0 4px 20px #0008" }),
-    errorBanner:{ display:"flex", alignItems:"center", gap:12, margin:"8px 14px 0", background:"#ef444422", border:"1px solid #ef4444", borderRadius:12, padding:"10px 12px" },
+    toast:      (ok) => ({ position:"fixed", top:20, left:"50%", transform:"translateX(-50%)", background: ok?"#059669":"#dc2626", color:"#fff", padding:"10px 20px", borderRadius:12, fontWeight:700, fontSize:13, zIndex:999, whiteSpace:"nowrap", boxShadow:"0 8px 24px #0004" }),
+    errorBanner:{ display:"flex", alignItems:"center", gap:12, margin:"8px 14px 0", background:"#fee2e2", border:"1px solid #fca5a5", borderRadius:12, padding:"10px 12px" },
   };
 
   return (
@@ -542,15 +542,15 @@ export default function App()
           </div>
           <div style={{display:"flex",alignItems:"center",gap:10}}>
             {lastUpdated && !loading && (
-              <div style={{fontSize:10,color:"#64748b"}}>Update {lastUpdated.toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"})}</div>
+              <div style={{fontSize:10,color:"#c7d2fe"}}>Update {lastUpdated.toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"})}</div>
             )}
-            {loading && <div style={{fontSize:11,color:"#64748b"}}>Memuat…</div>}
-            {refreshing && <div style={{fontSize:11,color:"#f59e0b"}}>Menyegarkan…</div>}
+            {loading && <div style={{fontSize:11,color:"#e0e7ff"}}>Memuat…</div>}
+            {refreshing && <div style={{fontSize:11,color:"#fde68a"}}>Menyegarkan…</div>}
             {!loading && !refreshing && (
               <button
                 onClick={() => fetchData({ background: true })}
                 title="Muat ulang data"
-                style={{background:"none",border:"none",color:"#94a3b8",fontSize:18,cursor:"pointer",lineHeight:1,padding:4}}
+                style={{background:"none",border:"none",color:"#e0e7ff",fontSize:18,cursor:"pointer",lineHeight:1,padding:4}}
               >🔄</button>
             )}
           </div>
@@ -559,7 +559,7 @@ export default function App()
 
       {dataState === "error" && (
         <div style={s.errorBanner}>
-          <div style={{fontSize:12,color:"#fca5a5",flex:1}}>⚠️ {errorMsg}</div>
+          <div style={{fontSize:12,color:"#b91c1c",flex:1}}>⚠️ {errorMsg}</div>
           <button
             onClick={() => fetchData()}
             style={{background:"#ef4444",border:"none",color:"#fff",padding:"8px 14px",borderRadius:10,fontSize:12,fontWeight:700,cursor:"pointer"}}
@@ -617,7 +617,7 @@ export default function App()
 
             <div style={s.balCard(balance >= 0)}>
               <div style={s.balLabel}>Saldo Bersih</div>
-              <div style={s.balVal(balance >= 0)}>{balance >= 0 ? "+" : "-"}{formatRpFull(balance)}</div>
+              <div style={s.balVal}>{balance >= 0 ? "+" : "-"}{formatRpFull(balance)}</div>
             </div>
           </div>
 
@@ -629,10 +629,10 @@ export default function App()
               : (
                 <ResponsiveContainer width="100%" height={180}>
                   <BarChart data={barData} margin={{top:0,right:0,left:-20,bottom:0}}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#0f172a" />
-                    <XAxis dataKey="date" tick={{fontSize:8,fill:"#64748b"}} />
-                    <YAxis tick={{fontSize:8,fill:"#64748b"}} tickFormatter={v=>`${(v/1000).toFixed(0)}k`} />
-                    <Tooltip formatter={v=>formatRpFull(v)} contentStyle={{background:"#1e293b",border:"none",borderRadius:8,color:"#f1f5f9",fontSize:12}} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                    <XAxis dataKey="date" tick={{fontSize:8,fill:"#94a3b8"}} />
+                    <YAxis tick={{fontSize:8,fill:"#94a3b8"}} tickFormatter={v=>`${(v/1000).toFixed(0)}k`} />
+                    <Tooltip formatter={v=>formatRpFull(v)} contentStyle={{background:"#ffffff",border:"1px solid #e2e8f0",borderRadius:8,color:"#0f172a",fontSize:12}} />
                     <Bar dataKey="Pengeluaran" fill="#ef4444" radius={[3,3,0,0]} />
                     <Bar dataKey="Pemasukan"   fill="#10b981" radius={[3,3,0,0]} />
                   </BarChart>
@@ -664,7 +664,7 @@ export default function App()
                       >
                         {byCat.map((_,i) => <Cell key={i} fill={PIE_COLORS[i%PIE_COLORS.length]} />)}
                       </Pie>
-                      <Tooltip formatter={v=>formatRpFull(v)} contentStyle={{background:"#1e293b",border:"none",borderRadius:8,color:"#f1f5f9",fontSize:12}} />
+                      <Tooltip formatter={v=>formatRpFull(v)} contentStyle={{background:"#ffffff",border:"1px solid #e2e8f0",borderRadius:8,color:"#0f172a",fontSize:12}} />
                     </PieChart>
                   </ResponsiveContainer>
 
@@ -674,7 +674,7 @@ export default function App()
                       <div key={d.name} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"6px 8px",borderRadius:10,cursor:"pointer"}} onClick={() => setCatDetail(d.name)}>
                         <div style={{display:"flex",alignItems:"center",gap:6}}>
                           <span style={{width:10,height:10,borderRadius:"50%",background:PIE_COLORS[i%PIE_COLORS.length],display:"inline-block",flexShrink:0}} />
-                          <span style={{fontSize:12,color:"#cbd5e1"}}>{d.name}</span>
+                          <span style={{fontSize:12,color:"#334155"}}>{d.name}</span>
                         </div>
                         <div style={{display:"flex",gap:10,alignItems:"center"}}>
                           <span style={{fontSize:10,color:"#64748b"}}>{((d.value/totalOut)*100).toFixed(1)}%</span>
@@ -744,14 +744,15 @@ export default function App()
               onChange={e => setSearch(e.target.value)}
               style={{
                 width:"100%",
-                background:"#1e293b",
-                border:"1px solid #334155",
+                background:"#ffffff",
+                border:"1px solid #e2e8f0",
                 borderRadius:12,
                 padding:"12px 40px 12px 16px",
-                color:"#f1f5f9",
+                color:"#0f172a",
                 fontSize:14,
                 boxSizing:"border-box",
                 outline:"none",
+                boxShadow:"0 1px 2px #0f172a0d",
               }}
             />
             {search !== "" && (
@@ -808,7 +809,7 @@ export default function App()
                   const isOpen = swipedId === t.UUID;
 
                   return (
-                    <div key={i} style={{ position:"relative", overflow:"hidden", borderBottom:"1px solid #334155" }}>
+                    <div key={i} style={{ position:"relative", overflow:"hidden", borderBottom:"1px solid #f1f5f9" }}>
                       {/* Action buttons revealed when swiped */}
                       <div style={{ position:"absolute", right:0, top:0, bottom:0, display:"flex", alignItems:"stretch" }}>
                         <button
@@ -829,7 +830,7 @@ export default function App()
                         {{
                           ...s.txItem,
                           borderBottom:"none",
-                          background:"#0f172a",
+                          background:"#ffffff",
                           transform: isOpen ? "translateX(-140px)" : "translateX(0)",
                           transition:"transform 0.25s ease",
                           cursor:"pointer"
@@ -866,19 +867,19 @@ export default function App()
       {/* ── DELETE CONFIRM ── */}
         {deleteConfirm && 
           (
-            <div style={{ position:"fixed", inset:0, background:"#000000aa", display:"flex", alignItems:"center", justifyContent:"center", zIndex:999, padding:24 }}>
-              <div style={{ background:"#1e293b", borderRadius:20, padding:24, width:"100%" }}>
-                <div style={{ fontSize:16, fontWeight:700, color:"#f1f5f9", marginBottom:8 }}>🗑️ Hapus Transaksi?</div>
-                <div style={{ fontSize:13, color:"#94a3b8", marginBottom:6 }}>
+            <div style={{ position:"fixed", inset:0, background:"#0f172a88", display:"flex", alignItems:"center", justifyContent:"center", zIndex:999, padding:24 }}>
+              <div style={{ background:"#ffffff", borderRadius:20, padding:24, width:"100%", boxShadow:"0 20px 50px #0f172a33" }}>
+                <div style={{ fontSize:16, fontWeight:700, color:"#0f172a", marginBottom:8 }}>🗑️ Hapus Transaksi?</div>
+                <div style={{ fontSize:13, color:"#64748b", marginBottom:6 }}>
                   {deleteConfirm.Remarks}
                 </div>
-                <div style={{ fontSize:13, color:"#ef4444", fontWeight:700, marginBottom:20 }}>
+                <div style={{ fontSize:13, color:"#dc2626", fontWeight:700, marginBottom:20 }}>
                   {formatRpFull(parseTotal(deleteConfirm.Total))}
                 </div>
                 <div style={{ display:"flex", gap:10 }}>
                   <button
                     onClick={() => setDeleteConfirm(null)}
-                    style={{ flex:1, padding:"12px", borderRadius:12, border:"1px solid #334155", background:"none", color:"#94a3b8", fontSize:14, cursor:"pointer" }}
+                    style={{ flex:1, padding:"12px", borderRadius:12, border:"1px solid #e2e8f0", background:"#f8fafc", color:"#64748b", fontSize:14, cursor:"pointer" }}
                   >
                     Batal
                   </button>
@@ -897,16 +898,16 @@ export default function App()
       {/* ── EXIT CONFIRM ── */}
         {exitOpen && 
           (
-            <div style={{ position:"fixed", inset:0, background:"#000000aa", display:"flex", alignItems:"center", justifyContent:"center", zIndex:999, padding:24 }}>
-              <div style={{ background:"#1e293b", borderRadius:20, padding:24, width:"100%" }}>
-                <div style={{ fontSize:16, fontWeight:700, color:"#f1f5f9", marginBottom:8 }}>👋 Keluar dari Aplikasi?</div>
-                <div style={{ fontSize:13, color:"#94a3b8", marginBottom:20 }}>
+            <div style={{ position:"fixed", inset:0, background:"#0f172a88", display:"flex", alignItems:"center", justifyContent:"center", zIndex:999, padding:24 }}>
+              <div style={{ background:"#ffffff", borderRadius:20, padding:24, width:"100%", boxShadow:"0 20px 50px #0f172a33" }}>
+                <div style={{ fontSize:16, fontWeight:700, color:"#0f172a", marginBottom:8 }}>👋 Keluar dari Aplikasi?</div>
+                <div style={{ fontSize:13, color:"#64748b", marginBottom:20 }}>
                   Yakin ingin menutup Catatan Keuangan?
                 </div>
                 <div style={{ display:"flex", gap:10 }}>
                   <button
                     onClick={cancelExit}
-                    style={{ flex:1, padding:"12px", borderRadius:12, border:"1px solid #334155", background:"none", color:"#94a3b8", fontSize:14, cursor:"pointer" }}
+                    style={{ flex:1, padding:"12px", borderRadius:12, border:"1px solid #e2e8f0", background:"#f8fafc", color:"#64748b", fontSize:14, cursor:"pointer" }}
                   >
                     Batal
                   </button>
@@ -925,12 +926,12 @@ export default function App()
       {/* ── EDIT MODAL ── */}
         {editModal && 
           (
-          <div style={{ position:"fixed", inset:0, background:"#000000aa", display:"flex", alignItems:"flex-end", justifyContent:"center", zIndex:999 }}>
-            <div style={{ background:"#1e293b", borderRadius:"20px 20px 0 0", padding:24, width:"100%", maxHeight:"90vh", overflowY:"auto" }}>
+          <div style={{ position:"fixed", inset:0, background:"#0f172a88", display:"flex", alignItems:"flex-end", justifyContent:"center", zIndex:999 }}>
+            <div style={{ background:"#ffffff", borderRadius:"20px 20px 0 0", padding:24, width:"100%", maxHeight:"90vh", overflowY:"auto" }}>
               
               {/* Header */}
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
-                <div style={{ fontSize:16, fontWeight:700, color:"#f1f5f9" }}>✏️ Edit Transaksi</div>
+                <div style={{ fontSize:16, fontWeight:700, color:"#0f172a" }}>✏️ Edit Transaksi</div>
                 <button
                   onClick={() => setEditModal(null)}
                   style={{ background:"none", border:"none", color:"#64748b", fontSize:24, cursor:"pointer", lineHeight:1 }}
@@ -1016,13 +1017,13 @@ export default function App()
       {/* ── CATEGORY DETAIL MODAL ── */}
         {catDetail && 
           (
-          <div style={{ position:"fixed", inset:0, background:"#000000aa", display:"flex", alignItems:"flex-end", justifyContent:"center", zIndex:999 }} onClick={() => setCatDetail(null)}>
-            <div style={{ background:"#1e293b", borderRadius:"20px 20px 0 0", padding:24, width:"100%", maxHeight:"85vh", overflowY:"auto", boxSizing:"border-box" }} onClick={e => e.stopPropagation()}>
+          <div style={{ position:"fixed", inset:0, background:"#0f172a88", display:"flex", alignItems:"flex-end", justifyContent:"center", zIndex:999 }} onClick={() => setCatDetail(null)}>
+            <div style={{ background:"#ffffff", borderRadius:"20px 20px 0 0", padding:24, width:"100%", maxHeight:"85vh", overflowY:"auto", boxSizing:"border-box" }} onClick={e => e.stopPropagation()}>
               
               {/* Header */}
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:16 }}>
                 <div>
-                  <div style={{ fontSize:16, fontWeight:700, color:"#f1f5f9" }}>{catDetail}</div>
+                  <div style={{ fontSize:16, fontWeight:700, color:"#0f172a" }}>{catDetail}</div>
                   <div style={{ fontSize:11, color:"#64748b", marginTop:4 }}>{filterLabel} · {catTransactions.length} transaksi</div>
                 </div>
                 <button
@@ -1032,9 +1033,9 @@ export default function App()
               </div>
 
               {/* Total */}
-              <div style={{ background:"#0f172a", borderRadius:12, padding:"12px 14px", borderLeft:"3px solid #ef4444", marginBottom:16 }}>
-                <div style={{ fontSize:9, color:"#64748b", fontWeight:700, textTransform:"uppercase" }}>Total Pengeluaran</div>
-                <div style={{ fontSize:20, fontWeight:900, color:"#ef4444", marginTop:2 }}>{formatRpFull(catTotal)}</div>
+              <div style={{ background:"linear-gradient(135deg,#fee2e2,#fff7ed)", borderRadius:12, padding:"12px 14px", borderLeft:"3px solid #ef4444", marginBottom:16 }}>
+                <div style={{ fontSize:9, color:"#b91c1c", fontWeight:700, textTransform:"uppercase" }}>Total Pengeluaran</div>
+                <div style={{ fontSize:20, fontWeight:900, color:"#dc2626", marginTop:2 }}>{formatRpFull(catTotal)}</div>
               </div>
 
               {/* List */}
@@ -1043,12 +1044,12 @@ export default function App()
                 : catTransactions.map((t,i) => {
                     const amt = Math.abs(parseTotal(t.Total));
                     return (
-                      <div key={i} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 0", borderBottom:"1px solid #0f172a" }}>
+                      <div key={i} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 0", borderBottom:"1px solid #f1f5f9" }}>
                         <div style={{ flex:1, paddingRight:12 }}>
-                          <div style={{ fontSize:13, fontWeight:600, color:"#f1f5f9" }}>{t.Remarks}</div>
+                          <div style={{ fontSize:13, fontWeight:600, color:"#0f172a" }}>{t.Remarks}</div>
                           <div style={{ fontSize:11, color:"#64748b", marginTop:2 }}>{formatDateStr(t.Date)}</div>
                         </div>
-                        <div style={{ fontSize:14, fontWeight:700, color:"#ef4444", whiteSpace:"nowrap" }}>−{formatRpFull(amt)}</div>
+                        <div style={{ fontSize:14, fontWeight:700, color:"#dc2626", whiteSpace:"nowrap" }}>−{formatRpFull(amt)}</div>
                       </div>
                     );
                   })
