@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { getTransactions, getCategories, saveTransaction, editTransaction, deleteTransaction, readCache, writeCache, describeError } from "./services/api";
 
@@ -269,21 +269,30 @@ export default function App()
   }, [fetchData, loadCategories]);
 
   // ── Android back button (PWA) ─────────────────────────────────────────────
+  const exitRef = useRef(false);
+  const exitStateRef = useRef({ editModal, deleteConfirm, catDetail, swipedId, exitOpen });
   useEffect(() => {
+    exitStateRef.current = { editModal, deleteConfirm, catDetail, swipedId, exitOpen };
+  }, [editModal, deleteConfirm, catDetail, swipedId, exitOpen]);
+
+  useEffect(() => {
+    history.replaceState({ sentinel: true }, "");
     history.pushState({ sentinel: true }, "");
 
     const handleBack = () => {
-      if (editModal)          { setEditModal(null);          history.pushState({ sentinel: true }, ""); }
-      else if (deleteConfirm) { setDeleteConfirm(null);      history.pushState({ sentinel: true }, ""); }
-      else if (catDetail)     { setCatDetail(null);          history.pushState({ sentinel: true }, ""); }
-      else if (swipedId)      { setSwipedId(null);           history.pushState({ sentinel: true }, ""); }
-      else if (!exitOpen)     { setExitOpen(true);           history.pushState({ sentinel: true }, ""); }
+      if (exitRef.current) return;
+      const st = exitStateRef.current;
+      if (st.editModal)          { setEditModal(null);          history.pushState({ sentinel: true }, ""); }
+      else if (st.deleteConfirm) { setDeleteConfirm(null);      history.pushState({ sentinel: true }, ""); }
+      else if (st.catDetail)     { setCatDetail(null);          history.pushState({ sentinel: true }, ""); }
+      else if (st.swipedId)      { setSwipedId(null);           history.pushState({ sentinel: true }, ""); }
+      else if (!st.exitOpen)     { setExitOpen(true);           history.pushState({ sentinel: true }, ""); }
       // else: exitOpen already true → don't re-push, let the app close
     };
 
     window.addEventListener("popstate", handleBack);
     return () => window.removeEventListener("popstate", handleBack);
-  }, [editModal, deleteConfirm, catDetail, swipedId, exitOpen]);
+  }, []);
 
   const cancelExit = () => {
     setExitOpen(false);
@@ -291,8 +300,11 @@ export default function App()
   };
 
   const confirmExit = () => {
+    exitRef.current = true;
     setExitOpen(false);
-    window.close();
+    const n = window.history.length - 1;
+    if (n > 0) history.go(-n);
+    setTimeout(() => window.close(), 100);
   };
 
   const handleEdit = (t) => 
