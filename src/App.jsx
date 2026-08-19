@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { getTransactions, getCategories, saveTransaction, editTransaction, deleteTransaction, readCache, writeCache, describeError } from "./services/api";
 
 // ── PIN LOCK ───────────────────────────────────────────────────────────────
@@ -470,6 +470,60 @@ export default function App()
   });
   const barData = Object.values(byDay).sort((a,b) => a.date > b.date ? 1 : -1).slice(-20);
 
+  // ── Monthly Comparison Data ───────────────────────────────────────────────
+    const comparisonData = (() => 
+    {
+    if (filterMonth === "all") return null;
+
+    const curMonth = Number(filterMonth);
+    const curYear  = filterYear === "all" ? null : Number(filterYear);
+
+    let prevMonth = curMonth - 1;
+    let prevYear  = curYear;
+    if (prevMonth === 0) {
+      prevMonth = 12;
+      prevYear  = prevYear ? prevYear - 1 : null;
+    }
+
+    const curTx = transactions.filter(t =>
+      Number(t.Month) === curMonth &&
+      (curYear === null || Number(t.Year) === curYear)
+    );
+
+    const prevTx = transactions.filter(t =>
+      Number(t.Month) === prevMonth &&
+      (prevYear === null || Number(t.Year) === prevYear)
+    );
+
+    const curIn   = curTx.filter(t => t.Type === "Pemasukan").reduce((s,t) => s + parseTotal(t.Total), 0);
+    const curOut  = Math.abs(curTx.filter(t => t.Type === "Pengeluaran").reduce((s,t) => s + parseTotal(t.Total), 0));
+    const prevIn  = prevTx.filter(t => t.Type === "Pemasukan").reduce((s,t) => s + parseTotal(t.Total), 0);
+    const prevOut = Math.abs(prevTx.filter(t => t.Type === "Pengeluaran").reduce((s,t) => s + parseTotal(t.Total), 0));
+
+    const outChange = prevOut > 0 ? (((curOut - prevOut) / prevOut) * 100).toFixed(1) : null;
+    const inChange  = prevIn  > 0 ? (((curIn  - prevIn)  / prevIn)  * 100).toFixed(1) : null;
+
+    return {
+      curMonth, prevMonth, curYear, prevYear,
+      curIn, curOut, prevIn, prevOut,
+      outChange, inChange,
+      curLabel:  MONTH_NAMES[curMonth],
+      prevLabel: MONTH_NAMES[prevMonth],
+      chartData: [
+        {
+          name: "Pengeluaran",
+          [MONTH_NAMES[prevMonth]]: prevOut,
+          [MONTH_NAMES[curMonth]]:  curOut,
+        },
+        {
+          name: "Pemasukan",
+          [MONTH_NAMES[prevMonth]]: prevIn,
+          [MONTH_NAMES[curMonth]]:  curIn,
+        },
+      ]
+    };
+  })();
+
   // ── Label for active filter ───────────────────────────────────────────────
   const filterLabel = [
     filterYear  !== "all" ? filterYear : null,
@@ -684,14 +738,72 @@ export default function App()
                       </div>
                     ))}
                   </div>
-                </>
+                                </>
               )
             }
-          </div>
+          </div>      
 
-        </div>
-      )}
+          {/* ── MONTHLY COMPARISON CHART ── */}
+          {comparisonData && (
+            <div style={s.card}>
+              <div style={s.chartTitle}>
+                📅 Perbandingan — {comparisonData.prevLabel} vs {comparisonData.curLabel}
+              </div>
 
+              {/* Change indicators */}
+              <div style={{ display:"flex", gap:10, marginBottom:14 }}>
+                <div style={{ flex:1, background:"#fef2f2", borderRadius:12, padding:"10px 12px", borderLeft:"3px solid #ef4444" }}>
+                  <div style={{ fontSize:10, color:"#64748b", fontWeight:700, textTransform:"uppercase", marginBottom:4 }}>Pengeluaran</div>
+                  <div style={{ fontSize:13, fontWeight:800, color:"#dc2626" }}>{formatRp(comparisonData.curOut)}</div>
+                  {comparisonData.outChange !== null && (
+                    <div style={{ fontSize:11, fontWeight:700, marginTop:4, color: Number(comparisonData.outChange) > 0 ? "#dc2626" : "#059669" }}>
+                      {Number(comparisonData.outChange) > 0 ? "▲" : "▼"} {Math.abs(comparisonData.outChange)}%
+                      <span style={{ color:"#94a3b8", fontWeight:400 }}> vs {comparisonData.prevLabel}</span>
+                    </div>
+                  )}
+                </div>
+                <div style={{ flex:1, background:"#f0fdf4", borderRadius:12, padding:"10px 12px", borderLeft:"3px solid #10b981" }}>
+                  <div style={{ fontSize:10, color:"#64748b", fontWeight:700, textTransform:"uppercase", marginBottom:4 }}>Pemasukan</div>
+                  <div style={{ fontSize:13, fontWeight:800, color:"#059669" }}>{formatRp(comparisonData.curIn)}</div>
+                  {comparisonData.inChange !== null && (
+                    <div style={{ fontSize:11, fontWeight:700, marginTop:4, color: Number(comparisonData.inChange) > 0 ? "#059669" : "#dc2626" }}>
+                      {Number(comparisonData.inChange) > 0 ? "▲" : "▼"} {Math.abs(comparisonData.inChange)}%
+                      <span style={{ color:"#94a3b8", fontWeight:400 }}> vs {comparisonData.prevLabel}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Bar Chart */}
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={comparisonData.chartData} margin={{ top:0, right:0, left:-10, bottom:0 }} barCategoryGap="30%">
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <XAxis dataKey="name" tick={{ fontSize:11, fill:"#64748b" }} />
+                  <YAxis tick={{ fontSize:9, fill:"#64748b" }} tickFormatter={v => `${(v/1000000).toFixed(1)}jt`} />
+                  <Tooltip formatter={(v, name) => [formatRpFull(v), name]} contentStyle={{ background:"#ffffff", border:"1px solid #e2e8f0", borderRadius:8, color:"#0f172a", fontSize:12 }} />
+                  <Bar dataKey={comparisonData.prevLabel} fill="#cbd5e1" radius={[4,4,0,0]} />
+                  <Bar dataKey={comparisonData.curLabel}  fill="#6366f1" radius={[4,4,0,0]} />
+                </BarChart>
+              </ResponsiveContainer>
+
+              {/* Previous month summary */}
+              <div style={{ display:"flex", justifyContent:"space-between", marginTop:12, padding:"10px 12px", background:"#f8fafc", borderRadius:10 }}>
+                <div style={{ fontSize:11, color:"#64748b" }}>{comparisonData.prevLabel} (pembanding)</div>
+                <div style={{ display:"flex", gap:16 }}>
+                  <span style={{ fontSize:11, color:"#64748b" }}>Out: <span style={{ color:"#dc2626", fontWeight:700 }}>{formatRp(comparisonData.prevOut)}</span></span>
+                  <span style={{ fontSize:11, color:"#64748b" }}>In: <span style={{ color:"#059669", fontWeight:700 }}>{formatRp(comparisonData.prevIn)}</span></span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {!comparisonData && filterMonth === "all" && (
+            <div style={{ ...s.card, textAlign:"center", color:"#94a3b8", fontSize:12, padding:"16px" }}>
+              📅 Pilih bulan untuk melihat perbandingan dengan bulan sebelumnya
+            </div>
+          )}
+        </div>      
+      )}           
       {/* ── INPUT TAB ── */}
       {tab === "input" && (
         <div style={{padding:"14px 14px 8px"}}>
