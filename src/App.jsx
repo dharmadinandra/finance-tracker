@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { getTransactions, getCategories, saveTransaction, editTransaction, deleteTransaction, readCache, writeCache, describeError } from "./services/api";
 
 // ── PIN LOCK ───────────────────────────────────────────────────────────────
@@ -191,6 +191,7 @@ export default function App()
   const [filterYear,  setFilterYear]  = useState("all");
   const [filterMonth, setFilterMonth] = useState("all");
   const [filterCat,   setFilterCat]   = useState("all");
+  const [comparisonCat, setComparisonCat] = useState("all");
 
   const [form, setForm] = useState({
     date: new Date().toISOString().split("T")[0],
@@ -503,24 +504,39 @@ export default function App()
     const outChange = prevOut > 0 ? (((curOut - prevOut) / prevOut) * 100).toFixed(1) : null;
     const inChange  = prevIn  > 0 ? (((curIn  - prevIn)  / prevIn)  * 100).toFixed(1) : null;
 
+    // ── Per-kategori ──────────────────────────────────────────────────────
+    const isAllCat = comparisonCat === "all";
+    const curCat = isAllCat ? 0 : Math.abs(curTx.filter(t => t.Category === comparisonCat).reduce((s,t) => s + parseTotal(t.Total), 0));
+    const prevCat = isAllCat ? 0 : Math.abs(prevTx.filter(t => t.Category === comparisonCat).reduce((s,t) => s + parseTotal(t.Total), 0));
+    const catChange = isAllCat ? null : (prevCat > 0 ? (((curCat - prevCat) / prevCat) * 100).toFixed(1) : null);
+
     return {
       curMonth, prevMonth, curYear, prevYear,
       curIn, curOut, prevIn, prevOut,
       outChange, inChange,
+      comparisonCat, isAllCat, curCat, prevCat, catChange,
       curLabel:  MONTH_NAMES[curMonth],
       prevLabel: MONTH_NAMES[prevMonth],
-      chartData: [
-        {
-          name: "Pengeluaran",
-          [MONTH_NAMES[prevMonth]]: prevOut,
-          [MONTH_NAMES[curMonth]]:  curOut,
-        },
-        {
-          name: "Pemasukan",
-          [MONTH_NAMES[prevMonth]]: prevIn,
-          [MONTH_NAMES[curMonth]]:  curIn,
-        },
-      ]
+      chartData: isAllCat
+        ? [
+            {
+              name: "Pengeluaran",
+              [MONTH_NAMES[prevMonth]]: prevOut,
+              [MONTH_NAMES[curMonth]]:  curOut,
+            },
+            {
+              name: "Pemasukan",
+              [MONTH_NAMES[prevMonth]]: prevIn,
+              [MONTH_NAMES[curMonth]]:  curIn,
+            },
+          ]
+        : [
+            {
+              name: comparisonCat,
+              [MONTH_NAMES[prevMonth]]: prevCat,
+              [MONTH_NAMES[curMonth]]:  curCat,
+            },
+          ]
     };
   })();
 
@@ -748,31 +764,65 @@ export default function App()
             <div style={s.card}>
               <div style={s.chartTitle}>
                 📅 Perbandingan — {comparisonData.prevLabel} vs {comparisonData.curLabel}
+                {comparisonData.comparisonCat !== "all" && ` · ${comparisonData.comparisonCat}`}
+              </div>
+
+              {/* Category selector */}
+              <div style={{ marginBottom:14 }}>
+                <div style={{ fontSize:10, color:"#64748b", fontWeight:700, textTransform:"uppercase", marginBottom:8, letterSpacing:"0.05em" }}>Kategori</div>
+                <div style={s.filterRow}>
+                  <button style={s.filterChip(comparisonData.comparisonCat === "all")} onClick={() => setComparisonCat("all")}>Semua</button>
+                  {categories.map(c => (
+                    <button key={c} style={s.filterChip(comparisonData.comparisonCat === c)} onClick={() => setComparisonCat(c)}>{c}</button>
+                  ))}
+                </div>
               </div>
 
               {/* Change indicators */}
-              <div style={{ display:"flex", gap:10, marginBottom:14 }}>
-                <div style={{ flex:1, background:"#fef2f2", borderRadius:12, padding:"10px 12px", borderLeft:"3px solid #ef4444" }}>
-                  <div style={{ fontSize:10, color:"#64748b", fontWeight:700, textTransform:"uppercase", marginBottom:4 }}>Pengeluaran</div>
-                  <div style={{ fontSize:13, fontWeight:800, color:"#dc2626" }}>{formatRp(comparisonData.curOut)}</div>
-                  {comparisonData.outChange !== null && (
-                    <div style={{ fontSize:11, fontWeight:700, marginTop:4, color: Number(comparisonData.outChange) > 0 ? "#dc2626" : "#059669" }}>
-                      {Number(comparisonData.outChange) > 0 ? "▲" : "▼"} {Math.abs(comparisonData.outChange)}%
-                      <span style={{ color:"#94a3b8", fontWeight:400 }}> vs {comparisonData.prevLabel}</span>
-                    </div>
-                  )}
+              {comparisonData.isAllCat ? (
+                <div style={{ display:"flex", gap:10, marginBottom:14 }}>
+                  <div style={{ flex:1, background:"#fef2f2", borderRadius:12, padding:"10px 12px", borderLeft:"3px solid #ef4444" }}>
+                    <div style={{ fontSize:10, color:"#64748b", fontWeight:700, textTransform:"uppercase", marginBottom:4 }}>Pengeluaran</div>
+                    <div style={{ fontSize:13, fontWeight:800, color:"#dc2626" }}>{formatRp(comparisonData.curOut)}</div>
+                    {comparisonData.outChange !== null && (
+                      <div style={{ fontSize:11, fontWeight:700, marginTop:4, color: Number(comparisonData.outChange) > 0 ? "#dc2626" : "#059669" }}>
+                        {Number(comparisonData.outChange) > 0 ? "▲" : "▼"} {Math.abs(comparisonData.outChange)}%
+                        <span style={{ color:"#94a3b8", fontWeight:400 }}> vs {comparisonData.prevLabel}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ flex:1, background:"#f0fdf4", borderRadius:12, padding:"10px 12px", borderLeft:"3px solid #10b981" }}>
+                    <div style={{ fontSize:10, color:"#64748b", fontWeight:700, textTransform:"uppercase", marginBottom:4 }}>Pemasukan</div>
+                    <div style={{ fontSize:13, fontWeight:800, color:"#059669" }}>{formatRp(comparisonData.curIn)}</div>
+                    {comparisonData.inChange !== null && (
+                      <div style={{ fontSize:11, fontWeight:700, marginTop:4, color: Number(comparisonData.inChange) > 0 ? "#059669" : "#dc2626" }}>
+                        {Number(comparisonData.inChange) > 0 ? "▲" : "▼"} {Math.abs(comparisonData.inChange)}%
+                        <span style={{ color:"#94a3b8", fontWeight:400 }}> vs {comparisonData.prevLabel}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div style={{ flex:1, background:"#f0fdf4", borderRadius:12, padding:"10px 12px", borderLeft:"3px solid #10b981" }}>
-                  <div style={{ fontSize:10, color:"#64748b", fontWeight:700, textTransform:"uppercase", marginBottom:4 }}>Pemasukan</div>
-                  <div style={{ fontSize:13, fontWeight:800, color:"#059669" }}>{formatRp(comparisonData.curIn)}</div>
-                  {comparisonData.inChange !== null && (
-                    <div style={{ fontSize:11, fontWeight:700, marginTop:4, color: Number(comparisonData.inChange) > 0 ? "#059669" : "#dc2626" }}>
-                      {Number(comparisonData.inChange) > 0 ? "▲" : "▼"} {Math.abs(comparisonData.inChange)}%
-                      <span style={{ color:"#94a3b8", fontWeight:400 }}> vs {comparisonData.prevLabel}</span>
-                    </div>
-                  )}
+              ) : (
+                <div style={{ marginBottom:14 }}>
+                  {(() => {
+                    const isIncome = comparisonData.comparisonCat === "Pemasukan";
+                    const catPos = Number(comparisonData.catChange) > 0;
+                    const catColor = isIncome ? (catPos ? "#059669" : "#dc2626") : (catPos ? "#dc2626" : "#059669");
+                    return (
+                      <div style={{ background: isIncome ? "#f0fdf4" : "#fef2f2", borderRadius:12, padding:"10px 12px", borderLeft: isIncome ? "3px solid #10b981" : "3px solid #ef4444" }}>
+                        <div style={{ fontSize:10, color:"#64748b", fontWeight:700, textTransform:"uppercase", marginBottom:4 }}>{comparisonData.comparisonCat}</div>
+                        <div style={{ fontSize:13, fontWeight:800, color: isIncome ? "#059669" : "#dc2626" }}>{formatRp(comparisonData.curCat)}</div>
+                        {comparisonData.catChange !== null && (
+                          <div style={{ fontSize:11, fontWeight:700, marginTop:4, color: catColor }}>
+                            {catPos ? "▲" : "▼"} {Math.abs(comparisonData.catChange)}%
+                            <span style={{ color:"#94a3b8", fontWeight:400 }}> vs {comparisonData.prevLabel}</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
-              </div>
+              )}
 
               {/* Bar Chart */}
               <ResponsiveContainer width="100%" height={200}>
@@ -789,10 +839,17 @@ export default function App()
               {/* Previous month summary */}
               <div style={{ display:"flex", justifyContent:"space-between", marginTop:12, padding:"10px 12px", background:"#f8fafc", borderRadius:10 }}>
                 <div style={{ fontSize:11, color:"#64748b" }}>{comparisonData.prevLabel} (pembanding)</div>
-                <div style={{ display:"flex", gap:16 }}>
-                  <span style={{ fontSize:11, color:"#64748b" }}>Out: <span style={{ color:"#dc2626", fontWeight:700 }}>{formatRp(comparisonData.prevOut)}</span></span>
-                  <span style={{ fontSize:11, color:"#64748b" }}>In: <span style={{ color:"#059669", fontWeight:700 }}>{formatRp(comparisonData.prevIn)}</span></span>
-                </div>
+                {comparisonData.isAllCat ? (
+                  <div style={{ display:"flex", gap:16 }}>
+                    <span style={{ fontSize:11, color:"#64748b" }}>Out: <span style={{ color:"#dc2626", fontWeight:700 }}>{formatRp(comparisonData.prevOut)}</span></span>
+                    <span style={{ fontSize:11, color:"#64748b" }}>In: <span style={{ color:"#059669", fontWeight:700 }}>{formatRp(comparisonData.prevIn)}</span></span>
+                  </div>
+                ) : (
+                  <span style={{ fontSize:11, color:"#64748b" }}>
+                    {comparisonData.comparisonCat}:{" "}
+                    <span style={{ color: comparisonData.comparisonCat === "Pemasukan" ? "#059669" : "#dc2626", fontWeight:700 }}>{formatRp(comparisonData.prevCat)}</span>
+                  </span>
+                )}
               </div>
             </div>
           )}
