@@ -172,20 +172,22 @@ export default function App()
     const c = readCache("categories");
     return (c && Array.isArray(c.data) && c.data.length) ? c.data : CATEGORIES;
   });
-  const [loading, setLoading]             = useState(false);
-  const [refreshing, setRefreshing]       = useState(false);
-  const [dataState, setDataState]         = useState("loading");
-  const [errorMsg, setErrorMsg]           = useState("");
-  const [lastUpdated, setLastUpdated]     = useState(null);
-  const [submitting, setSubmitting]       = useState(false);
-  const [toast, setToast]                 = useState(null);
-  const [swipedId,  setSwipedId]          = useState(null);
-  const [editModal, setEditModal]         = useState(null);
-  const [deleteConfirm, setDeleteConfirm] = useState(null);
-  const [editForm, setEditForm]           = useState({});
-  const [search, setSearch]               = useState("");
-  const [catDetail, setCatDetail]         = useState(null);
-  const [exitOpen, setExitOpen]           = useState(false);
+  const [loading, setLoading]                 = useState(false);
+  const [refreshing, setRefreshing]           = useState(false);
+  const [dataState, setDataState]             = useState("loading");
+  const [errorMsg, setErrorMsg]               = useState("");
+  const [lastUpdated, setLastUpdated]         = useState(null);
+  const [submitting, setSubmitting]           = useState(false);
+  const [toast, setToast]                     = useState(null);
+  const [swipedId,  setSwipedId]              = useState(null);
+  const [editModal, setEditModal]             = useState(null);
+  const [deleteConfirm, setDeleteConfirm]     = useState(null);
+  const [editForm, setEditForm]               = useState({});
+  const [search, setSearch]                   = useState("");
+  const [catDetail, setCatDetail]             = useState(null);
+  const [exitOpen, setExitOpen]               = useState(false);
+  const [suggestions, setSuggestions]         = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   // ── Filters ──────────────────────────────────────────────────────────────
   const [filterYear,  setFilterYear]  = useState("all");
@@ -376,7 +378,31 @@ export default function App()
       fetchData();
       }
     };
-
+  
+  // ── Suggestion based on history ───────────────────────────────────────────
+  const getSuggestions = useCallback((input, category) => {
+  if (!input || input.length < 2) return [];
+  const q = input.toLowerCase().trim();
+  const seen = new Set();
+  const results = [];
+  transactions
+    .filter(t => t.Category === category && t.Remarks)
+    .sort((a, b) => {
+      const countA = transactions.filter(x => x.Remarks === a.Remarks).length;
+      const countB = transactions.filter(x => x.Remarks === b.Remarks).length;
+      return countB - countA;
+    })
+    .forEach(t => {
+      const r = String(t.Remarks).trim();
+      if (r.toLowerCase().includes(q) && !seen.has(r)) {
+        seen.add(r);
+        const count = transactions.filter(x => x.Remarks === r && x.Category === category).length;
+        results.push({ text: r, count });
+      }
+    });
+  return results.slice(0, 5);
+  }, [transactions]);
+    
   const handleSubmit = async () => 
     {
       if (!form.remarks || !form.total) { showToast("Lengkapi semua field", false); return; }
@@ -881,14 +907,109 @@ export default function App()
             </div>
             <div style={{marginBottom:14}}>
               <label style={s.label}>Kategori</label>
-              <select style={s.select} value={form.category} onChange={e=>setForm(f=>({...f,category:e.target.value}))}>
+              <select
+                style={s.select}
+                value={form.category}
+                onChange={e => {
+                  setForm(f => ({ ...f, category: e.target.value, remarks: "" }));
+                  setShowSuggestions(false);
+                  setSuggestions([]);
+                }}
+              >
                 {categories.map(c=><option key={c}>{c}</option>)}
               </select>
             </div>
-            <div style={{marginBottom:14}}>
-              <label style={s.label}>Keterangan</label>
-              <input type="text" placeholder="mis. Bensin Motor, Makan Siang…" style={s.input} value={form.remarks} onChange={e=>setForm(f=>({...f,remarks:e.target.value}))} />
-            </div>
+            
+  <div style={{ marginBottom:14, position:"relative" }}>
+    <label style={s.label}>Keterangan</label>
+    <input
+    type="text"
+    placeholder="mis. Bensin Motor, Makan Siang…"
+    style={s.input}
+    value={form.remarks}
+    onChange={e => {
+      const val = e.target.value;
+      setForm(f => ({ ...f, remarks: val }));
+      const sugg = getSuggestions(val, form.category);
+      setSuggestions(sugg);
+      setShowSuggestions(sugg.length > 0 && val.length >= 2);
+    }}
+    onFocus={() => {
+      if (form.remarks.length >= 2) {
+        const sugg = getSuggestions(form.remarks, form.category);
+        setSuggestions(sugg);
+        setShowSuggestions(sugg.length > 0);
+      }
+    }}
+    onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+    autoComplete="off"
+  />
+
+  {/* Suggestion Dropdown */}
+  {showSuggestions && suggestions.length > 0 && (
+    <div style={{
+      position:"absolute",
+      top:"100%",
+      left:0,
+      right:0,
+      background:"#ffffff",
+      border:"1px solid #e2e8f0",
+      borderRadius:12,
+      boxShadow:"0 8px 24px #0f172a15",
+      zIndex:500,
+      overflow:"hidden",
+      marginTop:4,
+      }}>
+        {suggestions.map((sg, i) => (
+        <div
+          key={i}
+          onMouseDown={() => {
+            setForm(f => ({ ...f, remarks: sg.text }));
+            setShowSuggestions(false);
+            setSuggestions([]);
+          }}
+          style={{
+            display:"flex",
+            justifyContent:"space-between",
+            alignItems:"center",
+            padding:"10px 14px",
+            borderBottom: i < suggestions.length - 1 ? "1px solid #f1f5f9" : "none",
+            cursor:"pointer",
+            background:"#ffffff",
+          }}
+          onMouseEnter={e => e.currentTarget.style.background = "#f8fafc"}
+          onMouseLeave={e => e.currentTarget.style.background = "#ffffff"}
+          >
+          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+            <span style={{ fontSize:14 }}>🕐</span>
+            <span style={{ fontSize:14, color:"#0f172a", fontWeight:500 }}>{sg.text}</span>
+          </div>
+          <span style={{
+            fontSize:10,
+            color:"#6366f1",
+            fontWeight:700,
+            background:"#eef2ff",
+            padding:"2px 8px",
+            borderRadius:20,
+            }}>
+            {sg.count}x
+          </span>
+        </div>
+        ))}
+        <div style={{
+        padding:"6px 14px",
+        fontSize:10,
+        color:"#94a3b8",
+        background:"#f8fafc",
+        borderTop:"1px solid #f1f5f9",
+        textAlign:"center",
+        }}>
+              Berdasarkan riwayat {form.category}
+          </div>
+        </div>
+      )}
+  </div>
+
             <div style={{marginBottom:18}}>
               <label style={s.label}>Jumlah (Rp)</label>
               <input type="number" placeholder="mis. 55000" inputMode="numeric" style={s.input} value={form.total} onChange={e=>setForm(f=>({...f,total:e.target.value}))} />
@@ -959,7 +1080,7 @@ export default function App()
               ? `${filtered.length} hasil untuk "${search}"`
               : `${filtered.length} transaksi ditemukan`
             }
-</div>
+            </div>
             {loading && <div style={{textAlign:"center",color:"#64748b",padding:20}}>Memuat…</div>}
             {!loading && filtered.slice().reverse().slice(0,100).map((t,i) => 
               {
