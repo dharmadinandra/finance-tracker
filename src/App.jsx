@@ -200,6 +200,7 @@ export default function App()
     category: CATEGORIES[0],
     type: TYPES[0],
     remarks: "",
+    notes: "",
     total: "",
   });
 
@@ -334,6 +335,7 @@ export default function App()
         category: t.Category,
         type:     t.Type,
         remarks:  t.Remarks,
+        notes:    t.Notes || "",
         total:    Math.abs(parseTotal(t.Total)),
         });
       setEditModal(true);
@@ -418,7 +420,7 @@ export default function App()
       {
         await saveTransaction(payload);
         showToast("Berhasil disimpan ke Google Sheets ✓");
-        setForm(f => ({ ...f, remarks: "", total: "" }));
+        setForm(f => ({ ...f, remarks: "", notes: "",total: "" }));
         setTimeout(() => fetchData(),3000);
       } catch (err) 
         {
@@ -886,7 +888,8 @@ export default function App()
             </div>
           )}
         </div>      
-      )}           
+      )}  
+
       {/* ── INPUT TAB ── */}
       {tab === "input" && (
         <div style={{padding:"14px 14px 8px"}}>
@@ -1010,11 +1013,32 @@ export default function App()
       )}
   </div>
 
-            <div style={{marginBottom:18}}>
-              <label style={s.label}>Jumlah (Rp)</label>
+          {/* Notes */}
+          <div style={{marginBottom:14}}>
+              <label style={s.label}>
+                  Catatan
+                  <span style={{color:"#94a3b8",fontWeight:400,textTransform:"none",fontSize:10,marginLeft:6}}>(opsional)</span>
+              </label>
+              <textarea
+                  placeholder="mis. Full tank Shell Kelapa Gading, harga naik…"
+                  style={{
+                      ...s.input,
+                      minHeight:68,
+                      resize:"none",
+                      lineHeight:1.5,
+                      fontFamily:"inherit",
+                  }}
+                  value={form.notes}
+                  onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+              />
+          </div>
+
+          {/* Jumlah */}
+          <div style={{marginBottom:18}}>
+            <label style={s.label}>Jumlah (Rp)</label>
               <input type="number" placeholder="mis. 55000" inputMode="numeric" style={s.input} value={form.total} onChange={e=>setForm(f=>({...f,total:e.target.value}))} />
-            </div>
-            <button style={s.submitBtn} onClick={handleSubmit} disabled={submitting}>
+          </div>
+          <button style={s.submitBtn} onClick={handleSubmit} disabled={submitting}>
               {submitting ? "Menyimpan…" : "💾 Simpan ke Google Sheets"}
             </button>
           </div>
@@ -1133,6 +1157,20 @@ export default function App()
                             {t.Remarks}
                           </div>
                           <div style={s.txMeta}>{t.Category} · {dateStr}</div>
+                          {t.Notes && (
+                              <div style={{
+                                  fontSize:10,
+                                  color:"#6366f1",
+                                  marginTop:3,
+                                  fontStyle:"italic",
+                                  display:"flex",
+                                  alignItems:"center",
+                                  gap:4,
+                              }}>
+                                  <span>📝</span>
+                                  <span>{String(t.Notes).length > 40 ? String(t.Notes).slice(0,40) + "…" : t.Notes}</span>
+                              </div>
+                          )}
                         </div>
                         <div style={s.txAmt(amt > 0)}>{amt > 0 ? "+" : ""}{formatRpFull(amt)}</div>
                         <div style={{ fontSize:11, color:"#475569", marginLeft:8 }}>›</div>
@@ -1278,6 +1316,26 @@ export default function App()
                 />
               </div>
 
+              {/* Notes */}
+              <div style={{ marginBottom:14 }}>
+                  <label style={s.label}>
+                      Catatan
+                      <span style={{color:"#94a3b8",fontWeight:400,textTransform:"none",fontSize:10,marginLeft:6}}>(opsional)</span>
+                  </label>
+                  <textarea
+                      placeholder="Tambahkan catatan tambahan…"
+                      style={{
+                          ...s.input,
+                          minHeight:68,
+                          resize:"none",
+                          lineHeight:1.5,
+                          fontFamily:"inherit",
+                      }}
+                      value={editForm.notes || ""}
+                      onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))}
+                  />
+              </div>    
+
               {/* Total */}
               <div style={{ marginBottom:20 }}>
                 <label style={s.label}>Jumlah (Rp)</label>
@@ -1338,6 +1396,11 @@ export default function App()
                         <div style={{ flex:1, paddingRight:12 }}>
                           <div style={{ fontSize:13, fontWeight:600, color:"#0f172a" }}>{t.Remarks}</div>
                           <div style={{ fontSize:11, color:"#64748b", marginTop:2 }}>{formatDateStr(t.Date)}</div>
+                          {t.Notes && (
+                              <div style={{ fontSize:11, color:"#6366f1", marginTop:3, fontStyle:"italic" }}>
+                                  📝 {t.Notes}
+                              </div>
+                          )}
                         </div>
                         <div style={{ fontSize:14, fontWeight:700, color:"#dc2626", whiteSpace:"nowrap" }}>−{formatRpFull(amt)}</div>
                       </div>
