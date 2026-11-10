@@ -342,6 +342,30 @@ export default function App()
       setSwipedId(null);
     };
   
+  // ── Duplicate transaction → prefill Tambah form ──────────────────────────
+  const handleDuplicate = (t) => 
+    {
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+
+    setForm({
+      date:     today,
+      category: t.Category,
+      type:     t.Type,
+      remarks:  t.Remarks || "",
+      notes:    t.Notes || "",
+      total:    String(Math.abs(parseTotal(t.Total))),
+    });
+
+    setSwipedId(null);
+    setShowSuggestions(false);
+    setSuggestions([]);
+    setTab("input");
+    window.scrollTo(0, 0);
+    showToast("📋 Data disalin. Cek tanggal & jumlah, lalu simpan");
+    };
+
+
   const handleEditSubmit = async () => 
     {
       if (!editForm.remarks || !editForm.total) { showToast("Lengkapi semua field", false); return; }
@@ -1127,13 +1151,18 @@ export default function App()
                       {/* Action buttons revealed when swiped */}
                       <div style={{ position:"absolute", right:0, top:0, bottom:0, display:"flex", alignItems:"stretch" }}>
                         <button
+                          onClick={() => handleDuplicate(t)}
+                          style={{ background:"#0ea5e9", color:"#fff", border:"none", width:72, fontSize:12, fontWeight:700, cursor:"pointer" }}
+                        >📋 Duplikat
+                        </button>
+                        <button
                           onClick={() => handleEdit(t)}
-                          style={{ background:"#6366f1", color:"#fff", border:"none", padding:"0 18px", fontSize:12, fontWeight:700, cursor:"pointer" }}
+                          style={{ background:"#6366f1", color:"#fff", border:"none", width:72, fontSize:12, fontWeight:700, cursor:"pointer" }}
                         >✏️ Edit
                         </button>
                         <button
                           onClick={() => setDeleteConfirm(t)}
-                          style={{ background:"#ef4444", color:"#fff", border:"none", padding:"0 18px", fontSize:12, fontWeight:700, cursor:"pointer" }}
+                          style={{ background:"#ef4444", color:"#fff", border:"none", width:72, fontSize:12, fontWeight:700, cursor:"pointer" }}
                         >🗑️ Hapus
                         </button>
                       </div>
@@ -1145,7 +1174,7 @@ export default function App()
                           ...s.txItem,
                           borderBottom:"none",
                           background:"#ffffff",
-                          transform: isOpen ? "translateX(-140px)" : "translateX(0)",
+                          transform: isOpen ? "translateX(-216px)" : "translateX(0)",
                           transition:"transform 0.25s ease",
                           cursor:"pointer"
                         }}
